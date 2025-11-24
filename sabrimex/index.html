@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Sabrimex POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --text-body: #1d1d1f;
+            --background: #fff;
+            --background-secondary: #f5f5f7;
+            --border-color: #d2d2d7;
+            --accent-color: #0071e3;
+            --accent-hover: #0077ed;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 17px;
+            line-height: 1.47059;
+            font-weight: 400;
+            letter-spacing: -0.022em;
+            color: var(--text-body);
+            background-color: var(--background);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-content {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 0 22px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            font-size: 21px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-link {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 140px 0 80px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--background) 0%, var(--background-secondary) 100%);
+        }
+
+        .hero h1 {
+            font-size: 56px;
+            font-weight: 600;
+            letter-spacing: -0.005em;
+            line-height: 1.07143;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .hero .subtitle {
+            font-size: 21px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            letter-spacing: 0.011em;
+        }
+
+        .last-updated {
+            margin-top: 24px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 740px;
+            margin: 0 auto;
+            padding: 80px 22px;
+        }
+
+        /* Section Styles */
+        .section {
+            margin-bottom: 64px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section h2 {
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: 0.004em;
+            line-height: 1.125;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+        }
+
+        .section p {
+            font-size: 17px;
+            line-height: 1.52947;
+            font-weight: 400;
+            letter-spacing: -0.022em;
+            color: var(--text-body);
+            margin-bottom: 20px;
+        }
+
+        .section ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        .section li {
+            position: relative;
+            padding-left: 24px;
+            margin-bottom: 12px;
+            font-size: 17px;
+            line-height: 1.52947;
+            color: var(--text-body);
+        }
+
+        .section li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 6px;
+            height: 6px;
+            background: var(--accent-color);
+            border-radius: 50%;
+        }
+
+        .section li strong {
+            font-weight: 600;
+        }
+
+        /* Card Style for Important Info */
+        .info-card {
+            background: var(--background-secondary);
+            border-radius: 18px;
+            padding: 32px;
+            margin: 32px 0;
+        }
+
+        .info-card h3 {
+            font-size: 21px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .info-card p {
+            margin-bottom: 12px;
+        }
+
+        .info-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Contact Section */
+        .contact-card {
+            background: linear-gradient(135deg, #1d1d1f 0%, #2d2d2f 100%);
+            border-radius: 24px;
+            padding: 48px;
+            text-align: center;
+            color: #fff;
+            margin-top: 48px;
+        }
+
+        .contact-card h3 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .contact-card p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 24px;
+        }
+
+        .contact-card a {
+            display: inline-block;
+            background: var(--accent-color);
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 980px;
+            font-size: 17px;
+            font-weight: 500;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .contact-card a:hover {
+            background: var(--accent-hover);
+            transform: scale(1.02);
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 64px 0;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--background-secondary);
+            padding: 48px 22px;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-color);
+        }
+
+        .copyright {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 120px 22px 60px;
+            }
+
+            .hero h1 {
+                font-size: 40px;
+            }
+
+            .hero .subtitle {
+                font-size: 19px;
+            }
+
+            .container {
+                padding: 60px 22px;
+            }
+
+            .section h2 {
+                font-size: 28px;
+            }
+
+            .contact-card {
+                padding: 32px 24px;
+            }
+
+            .contact-card h3 {
+                font-size: 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .hero .subtitle {
+                font-size: 17px;
+            }
+
+            .section h2 {
+                font-size: 24px;
+            }
+
+            .info-card {
+                padding: 24px;
+                border-radius: 14px;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+
+        /* Animations */
+        @media (prefers-reduced-motion: no-preference) {
+            .section {
+                opacity: 0;
+                transform: translateY(20px);
+                animation: fadeInUp 0.6s ease forwards;
+            }
+
+            .section:nth-child(1) { animation-delay: 0.1s; }
+            .section:nth-child(2) { animation-delay: 0.2s; }
+            .section:nth-child(3) { animation-delay: 0.3s; }
+            .section:nth-child(4) { animation-delay: 0.4s; }
+            .section:nth-child(5) { animation-delay: 0.5s; }
+            .section:nth-child(6) { animation-delay: 0.6s; }
+            .section:nth-child(7) { animation-delay: 0.7s; }
+            .section:nth-child(8) { animation-delay: 0.8s; }
+            .section:nth-child(9) { animation-delay: 0.9s; }
+            .section:nth-child(10) { animation-delay: 1.0s; }
+
+            @keyframes fadeInUp {
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-content">
+            <a href="#" class="nav-logo">Sabrimex</a>
+            <a href="#contact" class="nav-link">Contact Us</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Privacy Policy</h1>
+        <p class="subtitle">Your privacy is important to us.</p>
+        <p class="last-updated">Last Updated: November 23, 2025</p>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="section">
+            <h2>Introduction</h2>
+            <p>Welcome to Sabrimex POS. We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our point-of-sale application.</p>
+            <p>By using our services, you agree to the collection and use of information in accordance with this policy.</p>
+        </div>
+
+        <div class="section">
+            <h2>Information We Collect</h2>
+            <p>We may collect the following types of information to provide and improve our services:</p>
+
+            <div class="info-card">
+                <h3>Business Information</h3>
+                <p>Business name, address, contact details, and tax identification numbers required for transaction processing and compliance.</p>
+            </div>
+
+            <ul>
+                <li><strong>Transaction Data</strong> — Sales records, payment information, product inventory, and transaction history</li>
+                <li><strong>User Account Information</strong> — Employee names, usernames, and secure access credentials</li>
+                <li><strong>Device Information</strong> — Device identifiers, operating system, and app version</li>
+                <li><strong>Usage Data</strong> — How you interact with our application, features used, and diagnostic logs</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>How We Use Your Information</h2>
+            <p>We use the collected information for the following purposes:</p>
+            <ul>
+                <li>To provide and maintain our POS services</li>
+                <li>To process transactions and manage your inventory</li>
+                <li>To generate sales reports and business analytics</li>
+                <li>To improve and optimize our application experience</li>
+                <li>To provide customer support and respond to inquiries</li>
+                <li>To send important updates and service notifications</li>
+                <li>To comply with legal and regulatory obligations</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Data Storage & Security</h2>
+            <p>We implement industry-leading security measures to protect your data:</p>
+
+            <div class="info-card">
+                <h3>Our Security Practices</h3>
+                <ul>
+                    <li>End-to-end encryption of sensitive data in transit and at rest</li>
+                    <li>Secure authentication with multi-factor options</li>
+                    <li>Regular security audits and vulnerability assessments</li>
+                    <li>Role-based access controls and user permissions</li>
+                </ul>
+            </div>
+
+            <p>Your data may be stored locally on your device and/or on secure cloud servers, depending on your configuration preferences.</p>
+        </div>
+
+        <div class="section">
+            <h2>Data Sharing</h2>
+            <p>We do not sell your personal information. We may share your information only in the following circumstances:</p>
+            <ul>
+                <li>With your explicit consent</li>
+                <li>With trusted service providers who assist in operating our application</li>
+                <li>To comply with legal requirements, court orders, or government requests</li>
+                <li>To protect our rights, privacy, safety, or property</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Your Rights</h2>
+            <p>Depending on your location, you may have the following rights regarding your data:</p>
+            <ul>
+                <li><strong>Access</strong> — Request a copy of your personal data</li>
+                <li><strong>Correction</strong> — Request correction of inaccurate data</li>
+                <li><strong>Deletion</strong> — Request deletion of your personal data</li>
+                <li><strong>Portability</strong> — Request transfer of your data to another service</li>
+                <li><strong>Opt-out</strong> — Opt-out of certain data processing activities</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Data Retention</h2>
+            <p>We retain your information for as long as necessary to provide our services and fulfill the purposes outlined in this policy. Transaction records may be retained as required by applicable tax and accounting regulations.</p>
+        </div>
+
+        <div class="section">
+            <h2>Children's Privacy</h2>
+            <p>Our application is designed for business use and is not intended for individuals under the age of 18. We do not knowingly collect personal information from children.</p>
+        </div>
+
+        <div class="section">
+            <h2>Policy Updates</h2>
+            <p>We may update this Privacy Policy from time to time to reflect changes in our practices or for legal, operational, or regulatory reasons. We will notify you of any material changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.</p>
+        </div>
+
+        <div class="section" id="contact">
+            <h2>Contact Us</h2>
+            <p>If you have any questions about this Privacy Policy or our data practices, we're here to help.</p>
+
+            <div class="contact-card">
+                <h3>Get in Touch</h3>
+                <p>Our team is ready to answer your privacy-related questions.</p>
+                <a href="mailto:privacy@sabrimex.com">privacy@sabrimex.com</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">Sabrimex</div>
+            <div class="footer-links">
+                <a href="#">Home</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#contact">Contact</a>
+            </div>
+            <p class="copyright">Copyright © 2025 Sabrimex. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
