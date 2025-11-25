@@ -714,10 +714,11 @@ section {
 
 .sabrimex-badge {
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
     gap: 12px;
     background: var(--background);
-    padding: 20px 32px;
+    padding: 24px 40px;
     border-radius: 16px;
     margin-top: 20px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
@@ -729,12 +730,15 @@ section {
     color: var(--text-primary);
 }
 
+.sabrimex-badge .sabrimex-logo {
+    height: 80px;
+    width: auto;
+}
+
 .sabrimex-badge .tagline {
     font-size: 14px;
     color: var(--text-secondary);
-    border-left: 1px solid var(--border-color);
-    padding-left: 12px;
-    margin-left: 4px;
+    font-weight: 500;
 }
 
 /* ================================
@@ -816,6 +820,12 @@ footer {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.6);
     margin-bottom: 24px;
+}
+
+.footer-sabrimex-logo {
+    height: 60px;
+    width: auto;
+    margin-bottom: 12px;
 }
 
 .footer-links-section {
