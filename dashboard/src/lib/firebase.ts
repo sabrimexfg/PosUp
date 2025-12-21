@@ -1,9 +1,9 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
-import { getFirestore, collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { getFirestore, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, DocumentSnapshot } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBccvTH_K7Pi_bNxUbmhJFu3_WI09bGInM",
+    apiKey: "AIzaSyAN7PXrQgW-jGdnvJocgMT20mq1vpz8-1k",
     authDomain: "posup-ba5be.firebaseapp.com",
     projectId: "posup-ba5be",
     storageBucket: "posup-ba5be.firebasestorage.app",
@@ -30,6 +30,9 @@ export {
     getDoc,
     getDocs,
     query,
-    where
+    where,
+    orderBy,
+    limit,
+    startAfter
 };
-export type { User };
+export type { User, DocumentSnapshot };

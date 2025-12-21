@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, LogOut, LayoutDashboard, Store, Package, Users } from "lucide-react";
+import Link from "next/link";
 
 interface BusinessData {
   name: string;
@@ -166,36 +167,40 @@ export default function Dashboard() {
           </Card>
 
           {/* Items */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Products
-              </CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.itemCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Items in inventory
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/inventory" className="block transition-transform hover:scale-105">
+            <Card className="cursor-pointer hover:bg-accent/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Products
+                </CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.itemCount}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Items in inventory
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
           {/* Customers */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Customers
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.customerCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Registered profiles
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/customers" className="block transition-transform hover:scale-105">
+            <Card className="cursor-pointer hover:bg-accent/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Customers
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.customerCount}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Registered profiles
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </main>
     </div>
