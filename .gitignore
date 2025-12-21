@@ -1,0 +1,14 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+
+# Editor directories
+.idea/
+.vscode/
+
+# Dependencies
+node_modules/

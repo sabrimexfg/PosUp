@@ -1,14 +1,15 @@
 // Firebase Configuration
-// IMPORTANT: You must add your Web App ID and Measurement ID below from the Firebase Console.
+// IMPORTANT: Set these values via environment variables or update this file locally (do not commit secrets)
+// For local development, create a .env file with your Firebase config values
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAN7PXrQgW-jGdnvJocgMT20mq1vpz8-1k",
-    authDomain: "posup-ba5be.firebaseapp.com", // Derived from Project ID
-    projectId: "posup-ba5be",
-    storageBucket: "posup-ba5be.firebasestorage.app",
-    messagingSenderId: "659640233256",
-    appId: "INSERT_YOUR_WEB_APP_ID_HERE", // ⚠️ REQUIRED: Get this from Firebase Console -> Project Settings -> General -> Your apps -> Web App
-    measurementId: "INSERT_YOUR_MEASUREMENT_ID_HERE" // Optional: Get this if you want Google Analytics
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID",
+    measurementId: "YOUR_MEASUREMENT_ID"
 };
 
 // Export config if using modules, otherwise it's global

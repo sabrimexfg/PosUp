@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, User, doc, getDoc, collection, getDocs } from "@/lib/firebase";
+import { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, User, doc, getDoc, collection, getDocs, onSnapshot } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +17,7 @@ interface DashboardStats {
   businessName: string;
   itemCount: number;
   customerCount: number;
+  source: "Loading..." | "Server ☁️" | "Cache ⚡️" | "Live 🟢" | "Mixed";
 }
 
 export default function Dashboard() {
@@ -26,57 +27,73 @@ export default function Dashboard() {
     businessName: "Loading...",
     itemCount: 0,
     customerCount: 0,
+    source: "Loading...",
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    let unsubscribeBusiness: () => void = () => { };
+    let unsubscribeItems: () => void = () => { };
+    let unsubscribeCustomers: () => void = () => { };
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setLoading(false); // Set loading to false once auth state is known
+
       if (currentUser) {
-        fetchDashboardData(currentUser.uid);
+        // 1. Subscribe to Business Info
+        const userDocRef = doc(db, "users", currentUser.uid);
+        unsubscribeBusiness = onSnapshot(userDocRef, (docSnap) => {
+          const source = docSnap.metadata.fromCache ? "Cache ⚡️" : "Live 🟢";
+          let businessName = "No Business Setup";
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            if (userData.business && userData.business.name) {
+              businessName = userData.business.name;
+            }
+          }
+          setStats(prev => ({ ...prev, businessName, source }));
+        });
+
+        // 2. Subscribe to Item Count
+        const itemsColRef = collection(db, `users/${currentUser.uid}/items`);
+        unsubscribeItems = onSnapshot(itemsColRef, (snapshot) => {
+          const source = snapshot.metadata.fromCache ? "Cache ⚡️" : "Live 🟢";
+          setStats(prev => ({
+            ...prev,
+            itemCount: snapshot.size,
+            source
+          }));
+        });
+
+        // 3. Subscribe to Customer Count
+        const customersColRef = collection(db, `users/${currentUser.uid}/customers`);
+        unsubscribeCustomers = onSnapshot(customersColRef, (snapshot) => {
+          const source = snapshot.metadata.fromCache ? "Cache ⚡️" : "Live 🟢";
+          setStats(prev => ({
+            ...prev,
+            customerCount: snapshot.size,
+            source
+          }));
+        });
+
       } else {
-        setLoading(false);
+        // If no user, reset stats or handle accordingly
+        setStats({
+          businessName: "Loading...",
+          itemCount: 0,
+          customerCount: 0,
+          source: "Loading...",
+        });
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeBusiness();
+      unsubscribeItems();
+      unsubscribeCustomers();
+    };
   }, []);
-
-  const fetchDashboardData = async (uid: string) => {
-    try {
-      // 1. Fetch Business Info (from users/{uid}.business field)
-      const userDocRef = doc(db, "users", uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      let businessName = "No Business Setup";
-
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        if (userData.business && userData.business.name) {
-          businessName = userData.business.name;
-        }
-      }
-
-      // 2. Fetch Item Count (users/{uid}/items)
-      const itemsColRef = collection(db, `users/${uid}/items`);
-      const itemsSnapshot = await getDocs(itemsColRef);
-      const itemCount = itemsSnapshot.size;
-
-      // 3. Fetch Customer Count (users/{uid}/customers)
-      const customersColRef = collection(db, `users/${uid}/customers`);
-      const customersSnapshot = await getDocs(customersColRef);
-      const customerCount = customersSnapshot.size;
-
-      setStats({
-        businessName,
-        itemCount,
-        customerCount,
-      });
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      setStats(prev => ({ ...prev, businessName: "Error loading data" }));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogin = async () => {
     try {
@@ -94,7 +111,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (loading && !user) { // Only show loader if we don't have a user yet
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -147,7 +164,15 @@ export default function Dashboard() {
       </nav>
 
       <main className="p-6 mx-auto max-w-6xl">
-        <h2 className="text-3xl font-bold tracking-tight mb-6">Dashboard</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <div className="flex items-center gap-2 text-sm bg-white px-3 py-1 rounded-full border shadow-sm">
+            <span className="text-muted-foreground">Status:</span>
+            <span className={`font-semibold ${stats.source.includes("Cache") ? "text-orange-500" : "text-green-600"}`}>
+              {stats.source}
+            </span>
+          </div>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Business Info */}
