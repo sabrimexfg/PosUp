@@ -1087,3 +1087,149 @@ footer {
         }
     }
 }
+
+/* ================================
+   Sabrimex Home Specifics
+   ================================ */
+
+.home-hero {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); /* Cleaner, more corporate look for wholesale */
+    color: var(--text-primary);
+}
+
+.home-hero h1 span {
+    background: linear-gradient(135deg, #0F172A, #334155); /* Darker slate for wholesale */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.trust-banner {
+    background: #fff;
+    border-bottom: 1px solid var(--border-color);
+    padding: 24px 0;
+}
+
+.trust-content {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.trust-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    color: var(--text-body);
+}
+
+.trust-icon {
+    font-size: 24px;
+}
+
+.section-bg-white {
+    background-color: #fff;
+}
+
+/* ================================
+   Technology Bridge Section
+   ================================ */
+.technology-bridge {
+    background: #111827; /* Dark background for contrast */
+    color: #fff;
+    overflow: hidden;
+}
+
+.bridge-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 60px;
+    flex-wrap: wrap;
+}
+
+.bridge-text {
+    flex: 1;
+    min-width: 300px;
+}
+
+.bridge-text h2 {
+    color: #fff;
+    font-size: 42px;
+    margin-bottom: 24px;
+}
+
+.bridge-text p {
+    color: #94a3b8;
+    font-size: 18px;
+    margin-bottom: 32px;
+}
+
+.bridge-list {
+    list-style: none;
+    margin-bottom: 40px;
+}
+
+.bridge-list li {
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 16px;
+    font-size: 18px;
+    color: #e2e8f0;
+}
+
+.bridge-list li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--accent-color);
+}
+
+.bridge-visual {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    min-width: 300px;
+}
+
+.app-icon-placeholder {
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+    border-radius: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 20px 50px rgba(124, 58, 237, 0.3);
+}
+
+.app-icon-placeholder span {
+    color: #fff;
+}
+
+/* ================================
+   Support Page
+   ================================ */
+.support-hero {
+    padding: 100px 24px 60px;
+    min-height: auto;
+}
+
+.form-container input,
+.form-container textarea {
+    transition: border-color 0.2s;
+}
+
+.form-container input:focus,
+.form-container textarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
