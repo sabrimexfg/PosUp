@@ -45,7 +45,7 @@ nav {
     top: 0;
     left: 0;
     right: 0;
-    height: 64px;
+    height: 80px;
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
