@@ -69,6 +69,13 @@ nav {
     color: var(--text-primary);
     text-decoration: none;
     letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+}
+
+.nav-logo img {
+    height: 40px;
+    width: auto;
 }
 
 .nav-logo span {
@@ -803,6 +810,11 @@ footer {
     font-size: 28px;
     font-weight: 700;
     margin-bottom: 16px;
+}
+
+.footer-logo img {
+    height: 50px;
+    width: auto;
 }
 
 .footer-logo span {

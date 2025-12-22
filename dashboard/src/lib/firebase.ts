@@ -14,7 +14,8 @@ import {
     DocumentSnapshot,
     initializeFirestore,
     persistentLocalCache,
-    persistentMultipleTabManager
+    persistentMultipleTabManager,
+    onSnapshot
 } from "firebase/firestore";
 
 const firebaseConfig = {
