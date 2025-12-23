@@ -22,7 +22,7 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChang
 // BUT the prompt said "make a dashboard". 
 // Let's use the window object for the config if it was loaded via <script src="config.js">.
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(window.firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 

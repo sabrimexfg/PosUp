@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import {
+    Firestore,
     getFirestore,
     collection,
     doc,
@@ -34,7 +35,7 @@ const auth = getAuth(app);
 
 // Initialize Firestore with Persistent Cache (IndexedDB)
 // We must ensure this runs only once to avoid "Firestore has already been started" errors
-let db;
+let db: Firestore;
 try {
     db = initializeFirestore(app, {
         localCache: persistentLocalCache({

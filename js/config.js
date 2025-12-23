@@ -11,6 +11,7 @@ const firebaseConfig = {
     appId: "YOUR_APP_ID",
     measurementId: "YOUR_MEASUREMENT_ID"
 };
+window.firebaseConfig = firebaseConfig;
 
 // Export config if using modules, otherwise it's global
 if (typeof module !== 'undefined' && module.exports) {

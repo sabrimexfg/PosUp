@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, LogOut, LayoutDashboard, Store, Package, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface BusinessData {
@@ -111,28 +112,18 @@ export default function Dashboard() {
     }
   };
 
-  if (loading && !user) { // Only show loader if we don't have a user yet
+  const { push } = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      push('/login');
+    }
+  }, [user, loading, push]);
+
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>Sign in to access your PosUp dashboard</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={handleLogin}>
-              Sign in with Google
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     );
   }
