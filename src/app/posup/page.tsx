@@ -215,6 +215,63 @@ export default function PosUpPage() {
         </div>
       </section>
 
+      {/* App Screenshots Section */}
+      <section className="py-24 px-6 bg-[#111827] overflow-hidden">
+        <div className="text-center max-w-[700px] mx-auto mb-16">
+          <span className="section-label">App Preview</span>
+          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-5 leading-tight">
+            See It In Action
+          </h2>
+          <p className="text-lg text-white/70">
+            A glimpse into the powerful features that make PosUp the complete business solution.
+          </p>
+        </div>
+
+        <div className="flex gap-6 justify-center flex-wrap max-w-[1400px] mx-auto">
+          {/* Screenshot placeholders - replace src with actual screenshots */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
+            <Image
+              src="/images/app/screenshot1.png"
+              alt="PosUp Dashboard"
+              width={280}
+              height={560}
+              className="relative rounded-[32px] shadow-2xl border border-white/10 hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+          <div className="relative group mt-12">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
+            <Image
+              src="/images/app/screenshot2.png"
+              alt="PosUp Inventory"
+              width={280}
+              height={560}
+              className="relative rounded-[32px] shadow-2xl border border-white/10 hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
+            <Image
+              src="/images/app/screenshot3.png"
+              alt="PosUp Orders"
+              width={280}
+              height={560}
+              className="relative rounded-[32px] shadow-2xl border border-white/10 hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+          <div className="relative group mt-12">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
+            <Image
+              src="/images/app/screenshot4.png"
+              alt="PosUp Reports"
+              width={280}
+              height={560}
+              className="relative rounded-[32px] shadow-2xl border border-white/10 hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-24 px-6 bg-white">
         <div className="text-center max-w-[700px] mx-auto mb-16">
