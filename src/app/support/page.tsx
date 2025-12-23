@@ -14,11 +14,11 @@ export default function SupportPage() {
       <Navbar activePage="support" />
 
       {/* Support Hero */}
-      <section className="pt-32 pb-16 px-6 text-center bg-gradient-to-b from-white to-[#f5f5f7]">
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-[#1d1d1f] mb-4">
+      <section className="pt-32 pb-16 px-6 text-center bg-gradient-to-b from-[#FEF3C7] to-[#FDE68A]">
+        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-[#3D2314] mb-4">
           How can we help?
         </h1>
-        <p className="text-lg text-[#86868b]">
+        <p className="text-lg text-[#5C3A2A]">
           Support for Sabrimex Distribution Partners and POSUp Users.
         </p>
       </section>
@@ -27,10 +27,10 @@ export default function SupportPage() {
       <section className="py-16 px-6 bg-white">
         <div className="max-w-[740px] mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-[#1d1d1f] mb-3">
+            <h2 className="text-3xl font-bold text-[#3D2314] mb-3">
               Contact Support
             </h2>
-            <p className="text-[#86868b]">
+            <p className="text-[#A47149]">
               Please fill out the form below or email us directly.
             </p>
           </div>
@@ -66,7 +66,7 @@ export default function SupportPage() {
             <div>
               <label
                 htmlFor="name"
-                className="block mb-2 font-semibold text-[#1d1d1f]"
+                className="block mb-2 font-semibold text-[#3D2314]"
               >
                 Name
               </label>
@@ -75,13 +75,13 @@ export default function SupportPage() {
                 id="name"
                 name="name"
                 required
-                className="w-full p-3 border border-[#d2d2d7] rounded-lg text-base focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#EDE9FE] transition-all"
+                className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all"
               />
             </div>
             <div>
               <label
                 htmlFor="email"
-                className="block mb-2 font-semibold text-[#1d1d1f]"
+                className="block mb-2 font-semibold text-[#3D2314]"
               >
                 Email
               </label>
@@ -90,13 +90,13 @@ export default function SupportPage() {
                 id="email"
                 name="email"
                 required
-                className="w-full p-3 border border-[#d2d2d7] rounded-lg text-base focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#EDE9FE] transition-all"
+                className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all"
               />
             </div>
             <div>
               <label
                 htmlFor="message"
-                className="block mb-2 font-semibold text-[#1d1d1f]"
+                className="block mb-2 font-semibold text-[#3D2314]"
               >
                 Message
               </label>
@@ -105,7 +105,7 @@ export default function SupportPage() {
                 name="message"
                 rows={5}
                 required
-                className="w-full p-3 border border-[#d2d2d7] rounded-lg text-base font-[inherit] focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#EDE9FE] transition-all resize-y"
+                className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base font-[inherit] focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all resize-y"
               />
             </div>
             <button type="submit" className="btn-primary w-full justify-center">
@@ -116,40 +116,40 @@ export default function SupportPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 px-6 bg-[#f5f5f7]">
+      <section className="py-16 px-6 bg-[#FEF3C7]/50">
         <div className="max-w-[740px] mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-[#1d1d1f]">
+            <h2 className="text-3xl font-bold text-[#3D2314]">
               Frequently Asked Questions
             </h2>
           </div>
 
           <div className="space-y-6">
             <div className="info-card">
-              <h3 className="text-xl font-semibold text-[#1d1d1f] mb-3">
+              <h3 className="text-xl font-semibold text-[#3D2314] mb-3">
                 How do I reset my PosUp password?
               </h3>
-              <p className="text-[#424245]">
+              <p className="text-[#5C3A2A]">
                 Currently, password resets are handled by our support team for
                 security. Please submit a ticket above.
               </p>
             </div>
 
             <div className="info-card">
-              <h3 className="text-xl font-semibold text-[#1d1d1f] mb-3">
+              <h3 className="text-xl font-semibold text-[#3D2314] mb-3">
                 How do I become a wholesale partner?
               </h3>
-              <p className="text-[#424245]">
+              <p className="text-[#5C3A2A]">
                 We serve businesses in Minnesota and Wisconsin. Improved
                 coverage is coming soon. Contact us to apply.
               </p>
             </div>
 
             <div className="info-card">
-              <h3 className="text-xl font-semibold text-[#1d1d1f] mb-3">
+              <h3 className="text-xl font-semibold text-[#3D2314] mb-3">
                 Is PosUp data backed up?
               </h3>
-              <p className="text-[#424245]">
+              <p className="text-[#5C3A2A]">
                 Yes, if you have Cloud Sync enabled, your data is securely
                 stored and backed up in real-time.
               </p>

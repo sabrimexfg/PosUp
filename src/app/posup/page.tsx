@@ -150,20 +150,20 @@ export default function PosUpPage() {
       <Navbar activePage="software" />
 
       {/* Hero Section */}
-      <section className="pt-40 pb-24 px-6 text-center bg-gradient-to-b from-white to-[#f5f5f7] relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(124,58,237,0.08)_0%,transparent_70%)] pointer-events-none" />
+      <section className="pt-40 pb-24 px-6 text-center bg-gradient-to-b from-[#FEF3C7] to-[#FDE68A] relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(232,93,4,0.1)_0%,transparent_70%)] pointer-events-none" />
 
-        <div className="inline-flex items-center gap-2 bg-[#EDE9FE] text-[#7C3AED] px-4 py-2 rounded-full text-sm font-semibold mb-6">
+        <div className="inline-flex items-center gap-2 bg-[#3D2314] text-[#FEF3C7] px-4 py-2 rounded-full text-sm font-semibold mb-6">
           <span>🚀</span>
           <span>Coming Soon to iOS</span>
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight text-[#1d1d1f] mb-6 max-w-[900px] mx-auto">
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight text-[#3D2314] mb-6 max-w-[900px] mx-auto">
           The Complete{" "}
           <span className="gradient-text">Point of Sale</span> Solution
         </h1>
 
-        <p className="text-lg md:text-xl text-[#86868b] max-w-[600px] mx-auto mb-10 leading-relaxed">
+        <p className="text-lg md:text-xl text-[#5C3A2A] max-w-[600px] mx-auto mb-10 leading-relaxed">
           Powerful, intuitive POS system for iOS. Manage sales, inventory,
           customers, and staff with real-time analytics and seamless offline
           support.
@@ -180,49 +180,49 @@ export default function PosUpPage() {
 
         <div className="flex justify-center gap-16 flex-wrap">
           <div className="text-center">
-            <div className="text-5xl font-extrabold text-[#1d1d1f] tracking-tight">
+            <div className="text-5xl font-extrabold text-[#3D2314] tracking-tight">
               29K+
             </div>
-            <div className="text-sm text-[#86868b] font-medium uppercase tracking-wider mt-1">
+            <div className="text-sm text-[#A47149] font-medium uppercase tracking-wider mt-1">
               Lines of Code
             </div>
           </div>
           <div className="text-center">
-            <div className="text-5xl font-extrabold text-[#1d1d1f] tracking-tight">
+            <div className="text-5xl font-extrabold text-[#3D2314] tracking-tight">
               45+
             </div>
-            <div className="text-sm text-[#86868b] font-medium uppercase tracking-wider mt-1">
+            <div className="text-sm text-[#A47149] font-medium uppercase tracking-wider mt-1">
               Screens
             </div>
           </div>
           <div className="text-center">
-            <div className="text-5xl font-extrabold text-[#1d1d1f] tracking-tight">
+            <div className="text-5xl font-extrabold text-[#3D2314] tracking-tight">
               32+
             </div>
-            <div className="text-sm text-[#86868b] font-medium uppercase tracking-wider mt-1">
+            <div className="text-sm text-[#A47149] font-medium uppercase tracking-wider mt-1">
               Permissions
             </div>
           </div>
         </div>
 
-        <div className="mt-10 text-sm text-[#86868b]">
+        <div className="mt-10 text-sm text-[#A47149]">
           <Link
             href="/"
-            className="hover:text-[#1d1d1f] transition-colors"
+            className="hover:text-[#3D2314] transition-colors"
           >
-            Built with ❤️ by <strong className="text-[#1d1d1f]">Sabrimex</strong>
+            Built with ❤️ by <strong className="text-[#3D2314]">Sabrimex</strong>
           </Link>
         </div>
       </section>
 
       {/* App Screenshots Section */}
-      <section className="py-24 px-6 bg-[#111827] overflow-hidden">
+      <section className="py-24 px-6 bg-[#3D2314] overflow-hidden">
         <div className="text-center max-w-[700px] mx-auto mb-16">
           <span className="section-label">App Preview</span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-5 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#FEF3C7] tracking-tight mb-5 leading-tight">
             See It In Action
           </h2>
-          <p className="text-lg text-white/70">
+          <p className="text-lg text-[#D4A574]">
             A glimpse into the powerful features that make PosUp the complete business solution.
           </p>
         </div>
@@ -230,7 +230,7 @@ export default function PosUpPage() {
         <div className="flex gap-6 justify-center flex-wrap max-w-[1400px] mx-auto">
           {/* Screenshot placeholders - replace src with actual screenshots */}
           <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E85D04]/20 to-[#F59E0B]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
             <Image
               src="/images/app/screenshot6.png"
               alt="PosUp Dashboard"
@@ -240,7 +240,7 @@ export default function PosUpPage() {
             />
           </div>
           <div className="relative group mt-12">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E85D04]/20 to-[#F59E0B]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
             <Image
               src="/images/app/screenshot2.png"
               alt="PosUp Inventory"
@@ -250,7 +250,7 @@ export default function PosUpPage() {
             />
           </div>
           <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E85D04]/20 to-[#F59E0B]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
             <Image
               src="/images/app/screenshot3.png"
               alt="PosUp Orders"
@@ -260,7 +260,7 @@ export default function PosUpPage() {
             />
           </div>
           <div className="relative group mt-12">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E85D04]/20 to-[#F59E0B]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
             <Image
               src="/images/app/screenshot4.png"
               alt="PosUp Reports"
@@ -276,10 +276,10 @@ export default function PosUpPage() {
       <section id="features" className="py-24 px-6 bg-white">
         <div className="text-center max-w-[700px] mx-auto mb-16">
           <span className="section-label">Features</span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#1d1d1f] tracking-tight mb-5 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#3D2314] tracking-tight mb-5 leading-tight">
             Everything You Need to Run Your Business
           </h2>
-          <p className="text-lg text-[#86868b]">
+          <p className="text-lg text-[#A47149]">
             PosUp provides a complete suite of tools to manage every aspect of
             your business operations.
           </p>
@@ -288,22 +288,22 @@ export default function PosUpPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[1200px] mx-auto">
           {features.map((feature) => (
             <div key={feature.title} className="feature-card">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] rounded-2xl flex items-center justify-center mb-6 text-3xl">
+              <div className="w-14 h-14 bg-gradient-to-br from-[#E85D04] to-[#F59E0B] rounded-2xl flex items-center justify-center mb-6 text-3xl">
                 {feature.icon}
               </div>
-              <h3 className="text-2xl font-bold text-[#1d1d1f] tracking-tight mb-3">
+              <h3 className="text-2xl font-bold text-[#3D2314] tracking-tight mb-3">
                 {feature.title}
               </h3>
-              <p className="text-[#86868b] leading-relaxed mb-5">
+              <p className="text-[#A47149] leading-relaxed mb-5">
                 {feature.description}
               </p>
               <ul className="space-y-2.5">
                 {feature.items.map((item) => (
                   <li
                     key={item}
-                    className="flex items-start gap-2.5 text-[15px] text-[#424245]"
+                    className="flex items-start gap-2.5 text-[15px] text-[#5C3A2A]"
                   >
-                    <span className="text-[#10B981] font-bold">✓</span>
+                    <span className="text-[#22C55E] font-bold">✓</span>
                     {item}
                   </li>
                 ))}
@@ -314,13 +314,13 @@ export default function PosUpPage() {
       </section>
 
       {/* Capabilities Section */}
-      <section className="py-24 px-6 bg-[#f5f5f7]">
+      <section className="py-24 px-6 bg-[#FEF3C7]">
         <div className="text-center max-w-[700px] mx-auto mb-16">
           <span className="section-label">Capabilities</span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#1d1d1f] tracking-tight mb-5 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#3D2314] tracking-tight mb-5 leading-tight">
             Built for Scale
           </h2>
-          <p className="text-lg text-[#86868b]">
+          <p className="text-lg text-[#A47149]">
             PosUp is engineered to handle everything from small shops to growing
             multi-location businesses.
           </p>
@@ -330,28 +330,28 @@ export default function PosUpPage() {
           {capabilities.map((cap) => (
             <div
               key={cap.title}
-              className="bg-white rounded-[20px] p-8 text-center hover:-translate-y-0.5 transition-transform"
+              className="bg-white rounded-[20px] p-8 text-center hover:-translate-y-0.5 transition-transform border border-[#A47149]/20"
             >
               <div className="text-4xl font-extrabold gradient-text mb-2">
                 {cap.number}
               </div>
-              <h4 className="text-lg font-semibold text-[#1d1d1f] mb-2">
+              <h4 className="text-lg font-semibold text-[#3D2314] mb-2">
                 {cap.title}
               </h4>
-              <p className="text-sm text-[#86868b]">{cap.description}</p>
+              <p className="text-sm text-[#A47149]">{cap.description}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Technology Section */}
-      <section className="py-24 px-6 bg-[#1d1d1f] text-white">
+      <section className="py-24 px-6 bg-[#3D2314] text-white">
         <div className="text-center max-w-[700px] mx-auto mb-16">
           <span className="section-label">Technology</span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-5 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#FEF3C7] tracking-tight mb-5 leading-tight">
             Modern Architecture
           </h2>
-          <p className="text-lg text-white/70">
+          <p className="text-lg text-[#D4A574]">
             Built with cutting-edge iOS technologies for performance,
             reliability, and security.
           </p>
@@ -361,10 +361,10 @@ export default function PosUpPage() {
           {techStack.map((tech) => (
             <div
               key={tech.name}
-              className="bg-white/5 border border-white/10 rounded-2xl p-7 text-center hover:bg-white/[0.08] hover:border-[#7C3AED]/50 transition-all"
+              className="bg-white/5 border border-[#A47149]/30 rounded-2xl p-7 text-center hover:bg-white/[0.08] hover:border-[#E85D04]/50 transition-all"
             >
-              <h4 className="text-lg font-semibold mb-2">{tech.name}</h4>
-              <p className="text-sm text-white/60">{tech.description}</p>
+              <h4 className="text-lg font-semibold text-[#FEF3C7] mb-2">{tech.name}</h4>
+              <p className="text-sm text-[#D4A574]">{tech.description}</p>
             </div>
           ))}
         </div>
@@ -374,10 +374,10 @@ export default function PosUpPage() {
       <section className="py-24 px-6 bg-white">
         <div className="text-center max-w-[700px] mx-auto mb-16">
           <span className="section-label">Use Cases</span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#1d1d1f] tracking-tight mb-5 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#3D2314] tracking-tight mb-5 leading-tight">
             Perfect For Your Business
           </h2>
-          <p className="text-lg text-[#86868b]">
+          <p className="text-lg text-[#A47149]">
             PosUp adapts to various business types and sizes.
           </p>
         </div>
@@ -386,13 +386,13 @@ export default function PosUpPage() {
           {useCases.map((useCase) => (
             <div
               key={useCase.title}
-              className="bg-gradient-to-br from-[#EDE9FE] to-[#FDF4FF] rounded-3xl p-10 text-center"
+              className="bg-gradient-to-br from-[#FEF3C7] to-[#FDE68A] rounded-3xl p-10 text-center border border-[#A47149]/20"
             >
               <div className="text-5xl mb-5">{useCase.icon}</div>
-              <h3 className="text-xl font-bold text-[#1d1d1f] mb-3">
+              <h3 className="text-xl font-bold text-[#3D2314] mb-3">
                 {useCase.title}
               </h3>
-              <p className="text-[15px] text-[#86868b] leading-relaxed">
+              <p className="text-[15px] text-[#5C3A2A] leading-relaxed">
                 {useCase.description}
               </p>
             </div>
@@ -401,23 +401,23 @@ export default function PosUpPage() {
       </section>
 
       {/* About Section */}
-      <section className="py-24 px-6 bg-[#f5f5f7]">
+      <section className="py-24 px-6 bg-[#FEF3C7]">
         <div className="text-center max-w-[700px] mx-auto mb-10">
           <span className="section-label">About</span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#1d1d1f] tracking-tight mb-5 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#3D2314] tracking-tight mb-5 leading-tight">
             Created from Experience
           </h2>
         </div>
 
         <div className="max-w-[800px] mx-auto text-center">
-          <p className="text-lg text-[#424245] leading-relaxed mb-6">
+          <p className="text-lg text-[#5C3A2A] leading-relaxed mb-6">
             PosUp was built by{" "}
-            <Link href="/" className="text-[#7C3AED] hover:underline">
+            <Link href="/" className="text-[#E85D04] hover:underline">
               Sabrimex
             </Link>
             , a distribution company that needed better tools.
           </p>
-          <p className="text-lg text-[#424245] leading-relaxed mb-8">
+          <p className="text-lg text-[#5C3A2A] leading-relaxed mb-8">
             Features like custom customer pricing, detailed profit tracking,
             granular staff permissions, and offline-first reliability
             aren&apos;t afterthoughts—they&apos;re core capabilities we needed
@@ -432,7 +432,7 @@ export default function PosUpPage() {
               height={140}
               className="h-[140px] w-auto drop-shadow-lg"
             />
-            <span className="text-sm text-[#86868b] font-semibold uppercase tracking-widest">
+            <span className="text-sm text-[#A47149] font-semibold uppercase tracking-widest">
               Built by Sabrimex
             </span>
           </Link>
@@ -440,23 +440,23 @@ export default function PosUpPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-6 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-center text-white">
-        <h2 className="text-4xl md:text-5xl font-bold mb-5 tracking-tight">
+      <section className="py-24 px-6 bg-gradient-to-br from-[#3D2314] to-[#E85D04] text-center text-white">
+        <h2 className="text-4xl md:text-5xl font-bold mb-5 tracking-tight text-[#FEF3C7]">
           Ready to Transform Your Business?
         </h2>
-        <p className="text-xl opacity-90 max-w-[500px] mx-auto mb-10">
+        <p className="text-xl text-[#D4A574] max-w-[500px] mx-auto mb-10">
           Be among the first to experience PosUp when it launches.
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <Link
             href="/support"
-            className="bg-white text-[#7C3AED] px-8 py-4 rounded-full text-lg font-semibold hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all"
+            className="bg-[#FEF3C7] text-[#3D2314] px-8 py-4 rounded-full text-lg font-semibold hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all"
           >
             Get Early Access
           </Link>
           <Link
             href="/support"
-            className="bg-transparent text-white px-8 py-4 rounded-full text-lg font-semibold border-2 border-white/40 hover:bg-white/10 hover:border-white transition-all"
+            className="bg-transparent text-[#FEF3C7] px-8 py-4 rounded-full text-lg font-semibold border-2 border-[#FEF3C7]/40 hover:bg-white/10 hover:border-[#FEF3C7] transition-all"
           >
             Contact Us
           </Link>
