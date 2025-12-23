@@ -232,7 +232,7 @@ export default function PosUpPage() {
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/20 to-[#EC4899]/20 rounded-[32px] blur-xl group-hover:blur-2xl transition-all" />
             <Image
-              src="/images/app/screenshot1.png"
+              src="/images/app/screenshot6.png"
               alt="PosUp Dashboard"
               width={280}
               height={560}
