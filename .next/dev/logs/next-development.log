@@ -4,3 +4,12 @@
 [00:00:08.775] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
 [00:00:11.920] Browser ERROR   [2025-12-23T04:53:35.578Z]  @firebase/firestore: Firestore (12.6.0): Uncaught Error in snapshot listener: FirebaseError: [code=permission-denied]: Missing or insufficient permissions.
 [00:00:11.920] Browser ERROR   [2025-12-23T04:53:35.582Z]  @firebase/firestore: Firestore (12.6.0): Uncaught Error in snapshot listener: FirebaseError: [code=permission-denied]: Missing or insufficient permissions.
+[00:04:48.226] Server  WARN    ⚠ Fast Refresh had to perform a full reload when ./src/app/dashboard/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[00:04:48.281] Server  LOG     🔥 Firestore initialized with persistence
+[00:04:48.296] Server  LOG     ✓ Compiled in 15ms
+[00:04:48.338] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:04:49.223] Browser LOG     🔥 Firestore initialized with persistence
+[00:04:57.960] Server  WARN    ⚠ Fast Refresh had to perform a full reload when ./src/app/dashboard/login/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[00:04:57.992] Server  LOG     🔥 Firestore initialized with persistence
+[00:04:58.044] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:04:58.223] Browser LOG     🔥 Firestore initialized with persistence
