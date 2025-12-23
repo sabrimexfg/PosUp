@@ -1,14 +1,47 @@
+"use client";
+
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Support - Sabrimex",
-  description:
-    "Contact Sabrimex support. We are here to help with your wholesale distribution or software questions.",
-};
+import { useState, FormEvent } from "react";
 
 export default function SupportPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus("idle");
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      message: formData.get("message") as string,
+    };
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        setSubmitStatus("success");
+        e.currentTarget.reset();
+      } else {
+        setSubmitStatus("error");
+      }
+    } catch {
+      setSubmitStatus("error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <>
       <Navbar activePage="support" />
@@ -57,12 +90,20 @@ export default function SupportPage() {
             </p>
           </div>
 
-          <form
-            action="mailto:admin@sabrimex.us"
-            method="post"
-            encType="text/plain"
-            className="space-y-5"
-          >
+          {submitStatus === "success" && (
+            <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+              Thank you! Your message has been sent successfully.
+            </div>
+          )}
+
+          {submitStatus === "error" && (
+            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+              Sorry, there was an error sending your message. Please try again
+              or email us directly.
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 htmlFor="name"
@@ -108,8 +149,12 @@ export default function SupportPage() {
                 className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base font-[inherit] focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all resize-y"
               />
             </div>
-            <button type="submit" className="btn-primary w-full justify-center">
-              Send Message
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "Sending..." : "Send Message"}
             </button>
           </form>
         </div>
