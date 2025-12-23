@@ -1,0 +1,6 @@
+[00:00:00.344] Server  LOG     ✓ Ready in 264ms
+[00:00:03.826] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:08.775] Browser LOG     🔥 Firestore initialized with persistence
+[00:00:08.775] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:00:11.920] Browser ERROR   [2025-12-23T04:53:35.578Z]  @firebase/firestore: Firestore (12.6.0): Uncaught Error in snapshot listener: FirebaseError: [code=permission-denied]: Missing or insufficient permissions.
+[00:00:11.920] Browser ERROR   [2025-12-23T04:53:35.582Z]  @firebase/firestore: Firestore (12.6.0): Uncaught Error in snapshot listener: FirebaseError: [code=permission-denied]: Missing or insufficient permissions.
