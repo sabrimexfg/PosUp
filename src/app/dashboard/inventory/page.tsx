@@ -7,11 +7,9 @@ import { useRouter } from "next/navigation";
 import { auth, db, onAuthStateChanged, User, collection, getDocs, query, orderBy, limit, startAfter, DocumentSnapshot } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Loader2, ImageOff } from "lucide-react";
-import Link from "next/link";
+import { Loader2, ImageOff } from "lucide-react";
 
 interface Item {
     id: string;
@@ -116,15 +114,8 @@ export default function InventoryPage() {
 
     return (
         <div className="min-h-screen bg-gray-50/50 p-6">
-            <div className="mx-auto max-w-6xl space-y-6">
-                <div className="flex items-center gap-4">
-                    <Link href="/">
-                        <Button variant="outline" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
-                </div>
+            <div className="max-w-6xl space-y-6">
+                <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
 
                 <Card>
                     <CardHeader>

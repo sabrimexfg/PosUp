@@ -13,3 +13,57 @@
 [00:04:57.992] Server  LOG     🔥 Firestore initialized with persistence
 [00:04:58.044] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
 [00:04:58.223] Browser LOG     🔥 Firestore initialized with persistence
+[00:31:05.562] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:31:06.694] Browser LOG     🔥 Firestore initialized with persistence
+[00:31:06.694] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:32:02.842] Server  LOG     🔥 Firestore initialized with persistence
+[00:32:02.859] Server  LOG     ✓ Compiled in 173ms
+[00:32:02.901] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:32:03.012] Browser LOG     🔥 Firestore initialized with persistence
+[00:32:15.509] Server  LOG     ✓ Compiled in 12ms
+[00:32:15.614] Browser ERROR   ./src/app/dashboard/page.tsx:199:14
+Parsing ecmascript source code failed
+  197 |           </Link>
+  198 |         </div>
+> 199 |       </main>
+      |              ^
+> 200 |     </div>
+      | ^^^^^
+  201 |   );
+  202 | }
+  203 |
+
+Expected '</', got 'jsx text (
+    )'
+
+Import traces:
+  Client Component Browser:
+    ./src/app/dashboard/page.tsx [Client Component Browser]
+    ./src/app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/dashboard/page.tsx [Client Component SSR]
+    ./src/app/dashboard/page.tsx [Server Component]
+[00:32:20.297] Server  WARN    ⚠ Fast Refresh had to perform a full reload when ./src/app/dashboard/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[00:32:20.336] Server  LOG     🔥 Firestore initialized with persistence
+[00:32:20.388] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:32:20.490] Browser LOG     🔥 Firestore initialized with persistence
+[00:32:29.138] Server  WARN    ⚠ Fast Refresh had to perform a full reload when ./src/app/dashboard/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[00:32:29.189] Server  LOG     ✓ Compiled in 13ms
+[00:32:29.224] Server  LOG     🔥 Firestore initialized with persistence
+[00:32:29.271] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:32:29.380] Browser LOG     🔥 Firestore initialized with persistence
+[00:32:35.380] Server  WARN    ⚠ Fast Refresh had to perform a full reload when ./src/app/dashboard/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[00:32:35.416] Server  LOG     ✓ Compiled in 10ms
+[00:32:35.448] Server  LOG     🔥 Firestore initialized with persistence
+[00:32:35.492] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:32:35.599] Browser LOG     🔥 Firestore initialized with persistence
+[00:33:27.979] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:33:28.090] Browser LOG     🔥 Firestore initialized with persistence
+[00:33:31.628] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:35:28.320] Server  LOG     🔥 Firestore initialized with persistence
+[00:35:28.331] Server  LOG     ✓ Compiled in 34ms
+[00:35:28.375] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:35:28.485] Browser LOG     🔥 Firestore initialized with persistence
+[00:36:46.301] Server  LOG     ✓ Compiled in 36ms
+[00:36:57.777] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior

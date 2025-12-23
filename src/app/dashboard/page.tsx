@@ -3,11 +3,9 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, User, doc, getDoc, collection, getDocs, onSnapshot } from "@/lib/firebase";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, LogOut, LayoutDashboard, Store, Package, Users } from "lucide-react";
+import { auth, db, onAuthStateChanged, User, doc, collection, onSnapshot } from "@/lib/firebase";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Store, Package, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -98,22 +96,6 @@ export default function Dashboard() {
     };
   }, []);
 
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login failed", error);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
-  };
-
   const { push } = useRouter();
 
   useEffect(() => {
@@ -131,32 +113,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <nav className="border-b bg-white px-6 py-4">
-        <div className="flex items-center justify-between mx-auto max-w-6xl">
-          <div className="flex items-center gap-2 font-bold text-xl">
-            <LayoutDashboard className="h-6 w-6 text-primary" />
-            <span>PosUp Dashboard</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium hidden sm:inline-block">
-                {user.displayName}
-              </span>
-              <Avatar>
-                <AvatarImage src={user.photoURL || ""} />
-                <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
-              </Avatar>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      <main className="p-6 mx-auto max-w-6xl">
+    <div className="min-h-screen bg-gray-50/50 p-6">
+      <div className="max-w-6xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
           <div className="flex items-center gap-2 text-sm bg-white px-3 py-1 rounded-full border shadow-sm">
@@ -220,7 +178,7 @@ export default function Dashboard() {
             </Card>
           </Link>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

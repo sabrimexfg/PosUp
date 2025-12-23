@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Loader2 } from "lucide-react";
 
 interface Customer {
     id: string;
@@ -114,15 +113,8 @@ export default function CustomersPage() {
 
     return (
         <div className="min-h-screen bg-gray-50/50 p-6">
-            <div className="mx-auto max-w-6xl space-y-6">
-                <div className="flex items-center gap-4">
-                    <Link href="/">
-                        <Button variant="outline" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-                </div>
+            <div className="max-w-6xl space-y-6">
+                <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
 
                 <Card>
                     <CardHeader>
