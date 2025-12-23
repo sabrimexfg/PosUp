@@ -68,9 +68,7 @@ export default function DashboardLayout({
           {/* Logo */}
           <div className="flex h-16 items-center border-b px-6">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <LayoutDashboard className="h-4 w-4" />
-              </div>
+              <img src="/images/posup1.png" alt="PosUp" className="h-8 w-8 rounded-lg" />
               <span className="text-lg font-bold">PosUp</span>
             </Link>
           </div>

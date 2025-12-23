@@ -124,7 +124,7 @@ export default function HomePage() {
             </div>
             <div className="flex-1 flex justify-center min-w-[300px]">
               <Image
-                src="/images/posup.png"
+                src="/images/posup1.png"
                 alt="PosUp App Icon"
                 width={200}
                 height={200}
