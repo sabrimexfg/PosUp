@@ -90,73 +90,75 @@ export default function SupportPage() {
             </p>
           </div>
 
-          {submitStatus === "success" && (
-            <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-              Thank you! Your message has been sent successfully.
-            </div>
-          )}
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-[#A47149]/20">
+            {submitStatus === "success" && (
+              <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                Thank you! Your message has been sent successfully.
+              </div>
+            )}
 
-          {submitStatus === "error" && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-              Sorry, there was an error sending your message. Please try again
-              or email us directly.
-            </div>
-          )}
+            {submitStatus === "error" && (
+              <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                Sorry, there was an error sending your message. Please try again
+                or email us directly.
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="name"
-                className="block mb-2 font-semibold text-[#3D2314]"
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block mb-2 font-semibold text-[#3D2314]"
+                >
+                  Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block mb-2 font-semibold text-[#3D2314]"
+                >
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  required
+                  className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="message"
+                  className="block mb-2 font-semibold text-[#3D2314]"
+                >
+                  Message
+                </label>
+                <textarea
+                  id="message"
+                  name="message"
+                  rows={5}
+                  required
+                  className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base font-[inherit] focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all resize-y"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                required
-                className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="email"
-                className="block mb-2 font-semibold text-[#3D2314]"
-              >
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                required
-                className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="message"
-                className="block mb-2 font-semibold text-[#3D2314]"
-              >
-                Message
-              </label>
-              <textarea
-                id="message"
-                name="message"
-                rows={5}
-                required
-                className="w-full p-3 border border-[#A47149]/30 rounded-lg text-base font-[inherit] focus:outline-none focus:border-[#E85D04] focus:ring-2 focus:ring-[#FEF3C7] transition-all resize-y"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "Sending..." : "Send Message"}
-            </button>
-          </form>
+                {isSubmitting ? "Sending..." : "Send Message"}
+              </button>
+            </form>
+          </div>
         </div>
       </section>
 
