@@ -269,10 +269,10 @@ export default function PrivacyPage() {
               Our team is ready to answer your privacy-related questions.
             </p>
             <a
-              href="mailto:privacy@sabrimex.com"
+              href="mailto:admin@sabrimex.us"
               className="inline-block bg-white text-[#7C3AED] px-6 py-3 rounded-full font-medium hover:bg-[#f5f5f7] transition-colors"
             >
-              privacy@sabrimex.com
+              admin@sabrimex.us
             </a>
           </div>
         </section>

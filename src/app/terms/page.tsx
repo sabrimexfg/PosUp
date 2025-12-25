@@ -247,10 +247,10 @@ export default function TermsPage() {
               Our team is ready to answer your questions.
             </p>
             <a
-              href="mailto:legal@sabrimex.com"
+              href="mailto:admin@sabrimex.us"
               className="inline-block bg-white text-[#7C3AED] px-6 py-3 rounded-full font-medium hover:bg-[#f5f5f7] transition-colors"
             >
-              legal@sabrimex.com
+              admin@sabrimex.us
             </a>
           </div>
         </section>
