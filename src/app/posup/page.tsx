@@ -21,6 +21,7 @@ const features = [
       "Draft order auto-save",
       "Digital signature capture",
       "Cash, card, check & digital payments",
+      "Orders for delivery",
     ],
   },
   {
@@ -86,12 +87,6 @@ const features = [
 ];
 
 const capabilities = [
-  { number: "81", title: "Swift Files", description: "Comprehensive codebase" },
-  {
-    number: "9",
-    title: "Data Models",
-    description: "Complete business coverage",
-  },
   {
     number: "100%",
     title: "Offline Support",
@@ -158,6 +153,14 @@ export default function PosUpPage() {
           <span>Coming Soon to iOS</span>
         </div>
 
+        <Image
+          src="/images/posup1.png"
+          alt="PosUp App Icon"
+          width={120}
+          height={120}
+          className="mx-auto mb-8 rounded-[28px] shadow-xl"
+        />
+
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight text-[#3D2314] mb-6 max-w-[900px] mx-auto">
           The Complete{" "}
           <span className="gradient-text">Point of Sale</span> Solution
@@ -176,33 +179,6 @@ export default function PosUpPage() {
           <a href="#features" className="btn-secondary">
             Explore Features
           </a>
-        </div>
-
-        <div className="flex justify-center gap-16 flex-wrap">
-          <div className="text-center">
-            <div className="text-5xl font-extrabold text-[#3D2314] tracking-tight">
-              29K+
-            </div>
-            <div className="text-sm text-[#A47149] font-medium uppercase tracking-wider mt-1">
-              Lines of Code
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-5xl font-extrabold text-[#3D2314] tracking-tight">
-              45+
-            </div>
-            <div className="text-sm text-[#A47149] font-medium uppercase tracking-wider mt-1">
-              Screens
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-5xl font-extrabold text-[#3D2314] tracking-tight">
-              32+
-            </div>
-            <div className="text-sm text-[#A47149] font-medium uppercase tracking-wider mt-1">
-              Permissions
-            </div>
-          </div>
         </div>
 
         <div className="mt-10 text-sm text-[#A47149]">
@@ -326,19 +302,19 @@ export default function PosUpPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 max-w-[1200px] mx-auto">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-[900px] mx-auto">
           {capabilities.map((cap) => (
             <div
               key={cap.title}
-              className="bg-white rounded-[20px] p-8 text-center hover:-translate-y-0.5 transition-transform border border-[#A47149]/20"
+              className="bg-white rounded-[20px] p-6 text-center hover:-translate-y-0.5 transition-transform border border-[#A47149]/20"
             >
-              <div className="text-4xl font-extrabold gradient-text mb-2">
+              <div className="text-3xl font-extrabold gradient-text mb-2 whitespace-nowrap">
                 {cap.number}
               </div>
-              <h4 className="text-lg font-semibold text-[#3D2314] mb-2">
+              <h4 className="text-base font-semibold text-[#3D2314] mb-1">
                 {cap.title}
               </h4>
-              <p className="text-sm text-[#A47149]">{cap.description}</p>
+              <p className="text-xs text-[#A47149] leading-relaxed">{cap.description}</p>
             </div>
           ))}
         </div>
