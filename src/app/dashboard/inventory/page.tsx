@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, db, onAuthStateChanged, User, collection, getDocs, updateDoc, doc, query, orderBy, limit, startAfter, DocumentSnapshot } from "@/lib/firebase";
+import { auth, db, onAuthStateChanged, User, collection, updateDoc, doc, query, orderBy, onSnapshot } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -42,6 +42,7 @@ interface Item {
     unit: string;
     trackInventory: boolean;
     trackProfit: boolean;
+    inCustomerCatalog?: boolean;
     imageUrl?: string;
     isDeleted?: boolean;
     updatedAt?: number;
@@ -50,10 +51,7 @@ interface Item {
 export default function InventoryPage() {
     const [user, setUser] = useState<User | null>(null);
     const [items, setItems] = useState<Item[]>([]);
-    const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
     const router = useRouter();
 
     // Edit dialog state
@@ -70,11 +68,10 @@ export default function InventoryPage() {
         unit: "unit",
         trackInventory: false,
         trackProfit: false,
+        inCustomerCatalog: false,
     });
     const [isSaving, setIsSaving] = useState(false);
     const [categories, setCategories] = useState<string[]>([]);
-
-    const ITEMS_PER_PAGE = 20;
 
     // Extract unique categories from items
     const updateCategories = (itemsList: Item[]) => {
@@ -95,64 +92,41 @@ export default function InventoryPage() {
     ];
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        let unsubscribeItems: (() => void) | null = null;
+
+        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
             if (!currentUser) {
                 router.push("/");
             } else {
                 setUser(currentUser);
-                fetchItems(currentUser.uid, true); // Initial load
+
+                // Set up real-time listener for items
+                const itemsRef = collection(db, `users/${currentUser.uid}/items`);
+                const q = query(itemsRef, orderBy("name"));
+
+                unsubscribeItems = onSnapshot(q, (snapshot) => {
+                    const allItems: Item[] = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    } as Item));
+
+                    setItems(allItems);
+                    updateCategories(allItems);
+                    setLoading(false);
+                }, (error) => {
+                    console.error("Error listening to items:", error);
+                    setLoading(false);
+                });
             }
         });
-        return () => unsubscribe();
+
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeItems) {
+                unsubscribeItems();
+            }
+        };
     }, [router]);
-
-    const fetchItems = async (uid: string, isInitial: boolean = false) => {
-        try {
-            if (isInitial) {
-                setLoading(true);
-            } else {
-                setLoadingMore(true);
-            }
-
-            const itemsRef = collection(db, `users/${uid}/items`);
-
-            let q = query(itemsRef, orderBy("name"), limit(ITEMS_PER_PAGE));
-
-            if (!isInitial && lastDoc) {
-                q = query(itemsRef, orderBy("name"), startAfter(lastDoc), limit(ITEMS_PER_PAGE));
-            }
-
-            const snapshot = await getDocs(q);
-            const newItems: Item[] = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as Item));
-
-            if (isInitial) {
-                setItems(newItems);
-                updateCategories(newItems);
-            } else {
-                const allItems = [...items, ...newItems];
-                setItems(prev => [...prev, ...newItems]);
-                updateCategories(allItems);
-            }
-
-            setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-            setHasMore(snapshot.docs.length === ITEMS_PER_PAGE);
-
-        } catch (error) {
-            console.error("Error fetching items:", error);
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-        }
-    };
-
-    const handleLoadMore = () => {
-        if (user && !loadingMore && hasMore) {
-            fetchItems(user.uid);
-        }
-    };
 
     const handleRowClick = (item: Item) => {
         setEditingItem(item);
@@ -167,6 +141,7 @@ export default function InventoryPage() {
             unit: item.unit || "unit",
             trackInventory: item.trackInventory ?? false,
             trackProfit: item.trackProfit ?? false,
+            inCustomerCatalog: item.inCustomerCatalog ?? false,
         });
         setEditDialogOpen(true);
     };
@@ -188,20 +163,12 @@ export default function InventoryPage() {
                 unit: editForm.unit,
                 trackInventory: editForm.trackInventory,
                 trackProfit: editForm.trackProfit,
+                inCustomerCatalog: editForm.inCustomerCatalog,
                 updatedAt: Date.now(),
             };
 
-            // Update in Firebase
+            // Update in Firebase - real-time listener will update local state automatically
             await updateDoc(itemRef, updatedData);
-
-            // Update local state (cached data)
-            setItems(prevItems =>
-                prevItems.map(item =>
-                    item.id === editingItem.id
-                        ? { ...item, ...updatedData }
-                        : item
-                )
-            );
 
             setEditDialogOpen(false);
             setEditingItem(null);
@@ -243,7 +210,16 @@ export default function InventoryPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Products ({items.length} {hasMore ? "+" : ""})</CardTitle>
+                        <div className="flex items-center justify-between">
+                            <CardTitle>Products ({items.length})</CardTitle>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                                Live sync
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -291,26 +267,6 @@ export default function InventoryPage() {
                                 )}
                             </TableBody>
                         </Table>
-
-                        {hasMore && (
-                            <div className="mt-6 flex justify-center">
-                                <Button onClick={handleLoadMore} disabled={loadingMore} variant="secondary">
-                                    {loadingMore ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Loading...
-                                        </>
-                                    ) : (
-                                        "Load More"
-                                    )}
-                                </Button>
-                            </div>
-                        )}
-
-                        {!hasMore && items.length > 0 && (
-                            <p className="text-center text-xs text-muted-foreground mt-6">All items loaded.</p>
-                        )}
-
                     </CardContent>
                 </Card>
             </div>
@@ -337,120 +293,101 @@ export default function InventoryPage() {
                         </div>
                     )}
 
-                    <div className="space-y-6 py-4">
+                    <div className="space-y-4 py-2">
                         {/* Basic Information */}
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="name" className="text-right">
-                                    Name
-                                </Label>
+                        <div className="space-y-3">
+                            <div className="space-y-1">
+                                <Label htmlFor="name" className="text-xs">Name</Label>
                                 <Input
                                     id="name"
                                     value={editForm.name}
                                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                    className="col-span-3"
+                                    className="h-9"
                                 />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="price" className="text-right">
-                                    Price ($)
-                                </Label>
-                                <Input
-                                    id="price"
-                                    type="number"
-                                    step="0.01"
-                                    value={editForm.price}
-                                    onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
-                                    className="col-span-3"
-                                />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="category" className="text-right">
-                                    Category
-                                </Label>
-                                <Select
-                                    value={editForm.category}
-                                    onValueChange={(value) => setEditForm({ ...editForm, category: value })}
-                                >
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Select category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {categories.map((category) => (
-                                            <SelectItem key={category} value={category}>
-                                                {category}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <Label htmlFor="price" className="text-xs">Price ($)</Label>
+                                    <Input
+                                        id="price"
+                                        type="number"
+                                        step="0.01"
+                                        value={editForm.price}
+                                        onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                                        className="h-9"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="category" className="text-xs">Category</Label>
+                                    <Select
+                                        value={editForm.category}
+                                        onValueChange={(value) => setEditForm({ ...editForm, category: value })}
+                                    >
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue placeholder="Select" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categories.map((category) => (
+                                                <SelectItem key={category} value={category}>
+                                                    {category}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </div>
 
                         {/* Inventory Section */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between border-t pt-4">
-                                <h4 className="text-sm font-medium text-muted-foreground">Inventory</h4>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="trackInventory" className="text-right">
-                                    Track Inventory
-                                </Label>
-                                <div className="col-span-3">
-                                    <Switch
-                                        id="trackInventory"
-                                        checked={editForm.trackInventory}
-                                        onCheckedChange={(checked) => setEditForm({ ...editForm, trackInventory: checked })}
-                                    />
-                                </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between border-t pt-3">
+                                <span className="text-xs font-medium text-muted-foreground">Inventory</span>
+                                <Switch
+                                    id="trackInventory"
+                                    checked={editForm.trackInventory}
+                                    onCheckedChange={(checked) => setEditForm({ ...editForm, trackInventory: checked })}
+                                />
                             </div>
                             {editForm.trackInventory && (
-                                <>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="currentStock" className="text-right">
-                                            Current Stock
-                                        </Label>
+                                <div className="grid grid-cols-4 gap-3">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="currentStock" className="text-xs">Stock</Label>
                                         <Input
                                             id="currentStock"
                                             type="number"
                                             value={editForm.currentStock}
                                             onChange={(e) => setEditForm({ ...editForm, currentStock: e.target.value })}
-                                            className="col-span-3"
+                                            className="h-9"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="minStockLevel" className="text-right">
-                                            Min Stock Level
-                                        </Label>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="minStockLevel" className="text-xs">Min</Label>
                                         <Input
                                             id="minStockLevel"
                                             type="number"
                                             value={editForm.minStockLevel}
                                             onChange={(e) => setEditForm({ ...editForm, minStockLevel: e.target.value })}
-                                            className="col-span-3"
+                                            className="h-9"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="maxStockLevel" className="text-right">
-                                            Max Stock Level
-                                        </Label>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="maxStockLevel" className="text-xs">Max</Label>
                                         <Input
                                             id="maxStockLevel"
                                             type="number"
                                             value={editForm.maxStockLevel}
                                             onChange={(e) => setEditForm({ ...editForm, maxStockLevel: e.target.value })}
-                                            className="col-span-3"
+                                            className="h-9"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="unit" className="text-right">
-                                            Unit
-                                        </Label>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="unit" className="text-xs">Unit</Label>
                                         <Select
                                             value={editForm.unit}
                                             onValueChange={(value) => setEditForm({ ...editForm, unit: value })}
                                         >
-                                            <SelectTrigger className="col-span-3">
-                                                <SelectValue placeholder="Select unit" />
+                                            <SelectTrigger className="h-9">
+                                                <SelectValue placeholder="Unit" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {unitOptions.map((option) => (
@@ -461,42 +398,43 @@ export default function InventoryPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
 
                         {/* Profit Tracking Section */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between border-t pt-4">
-                                <h4 className="text-sm font-medium text-muted-foreground">Profit Tracking</h4>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="trackProfit" className="text-right">
-                                    Track Profit
-                                </Label>
-                                <div className="col-span-3">
-                                    <Switch
-                                        id="trackProfit"
-                                        checked={editForm.trackProfit}
-                                        onCheckedChange={(checked) => setEditForm({ ...editForm, trackProfit: checked })}
-                                    />
-                                </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between border-t pt-3">
+                                <span className="text-xs font-medium text-muted-foreground">Profit Tracking</span>
+                                <Switch
+                                    id="trackProfit"
+                                    checked={editForm.trackProfit}
+                                    onCheckedChange={(checked) => setEditForm({ ...editForm, trackProfit: checked })}
+                                />
                             </div>
                             {editForm.trackProfit && (
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="cost" className="text-right">
-                                        Cost per Unit ($)
-                                    </Label>
+                                <div className="space-y-1">
+                                    <Label htmlFor="cost" className="text-xs">Cost per Unit ($)</Label>
                                     <Input
                                         id="cost"
                                         type="number"
                                         step="0.01"
                                         value={editForm.cost}
                                         onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
-                                        className="col-span-3"
+                                        className="h-9 w-32"
                                     />
                                 </div>
                             )}
+                        </div>
+
+                        {/* Customer Catalog Section */}
+                        <div className="flex items-center justify-between border-t pt-3">
+                            <span className="text-xs font-medium text-muted-foreground">In Customer Catalog</span>
+                            <Switch
+                                id="inCustomerCatalog"
+                                checked={editForm.inCustomerCatalog}
+                                onCheckedChange={(checked) => setEditForm({ ...editForm, inCustomerCatalog: checked })}
+                            />
                         </div>
                     </div>
 
