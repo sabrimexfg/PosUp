@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, collection, query, where, orderBy, getDocs, doc, getDoc } from "@/lib/firebase";
+import { db, collection, query, where, getDocs, doc, getDoc } from "@/lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageOff, Store } from "lucide-react";
+import { ImageOff, Store, Apple } from "lucide-react";
 
 interface Item {
     id: string;
@@ -31,8 +31,14 @@ export default function PublicCatalogPage() {
     const [business, setBusiness] = useState<Business | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isIOS, setIsIOS] = useState(false);
 
     useEffect(() => {
+        // Detect iOS device
+        const userAgent = navigator.userAgent || navigator.vendor;
+        const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+        setIsIOS(isIOSDevice);
+
         if (!userId) {
             setError("Invalid catalog link");
             setLoading(false);
@@ -54,20 +60,21 @@ export default function PublicCatalogPage() {
                     }
                 }
 
-                // Fetch catalog items
+                // Fetch catalog items (only filter by inCustomerCatalog to avoid needing composite index)
                 const itemsRef = collection(db, `users/${userId}/items`);
                 const q = query(
                     itemsRef,
-                    where("inCustomerCatalog", "==", true),
-                    where("isDeleted", "==", false),
-                    orderBy("name")
+                    where("inCustomerCatalog", "==", true)
                 );
 
                 const snapshot = await getDocs(q);
-                const catalogItems: Item[] = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                } as Item));
+                const catalogItems: Item[] = snapshot.docs
+                    .map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    } as Item))
+                    .filter(item => !item.isDeleted)
+                    .sort((a, b) => a.name.localeCompare(b.name));
 
                 setItems(catalogItems);
                 setLoading(false);
@@ -109,6 +116,26 @@ export default function PublicCatalogPage() {
                     <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h1 className="text-xl font-semibold mb-2">Catalog Not Available</h1>
                     <p className="text-muted-foreground">{error}</p>
+                </Card>
+            </div>
+        );
+    }
+
+    // iOS users see a coming soon message
+    if (isIOS) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white flex items-center justify-center p-6">
+                <Card className="p-8 text-center max-w-md">
+                    <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
+                        <Store className="h-8 w-8 text-purple-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold mb-2">{business?.name || "Welcome!"}</h1>
+                    <p className="text-muted-foreground mb-6">
+                        Our iOS ordering experience is coming soon! In the meantime, browse our catalog on your desktop or Android device.
+                    </p>
+                    <div className="text-xs text-muted-foreground">
+                        Powered by PosUp
+                    </div>
                 </Card>
             </div>
         );
