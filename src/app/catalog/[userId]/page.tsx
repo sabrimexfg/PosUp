@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { db, collection, query, where, getDocs, doc, getDoc } from "@/lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageOff, Store, Apple } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ImageOff, Store, Apple, ShoppingCart } from "lucide-react";
 
 interface Item {
     id: string;
@@ -23,6 +24,11 @@ interface Business {
     address?: string;
 }
 
+interface CartItem {
+    item: Item;
+    quantity: number;
+}
+
 export default function PublicCatalogPage() {
     const params = useParams();
     const userId = params.userId as string;
@@ -32,13 +38,17 @@ export default function PublicCatalogPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isIOS, setIsIOS] = useState(false);
+    const [isAndroid, setIsAndroid] = useState(false);
     const [catalogDisabled, setCatalogDisabled] = useState(false);
+    const [cart, setCart] = useState<CartItem[]>([]);
 
     useEffect(() => {
-        // Detect iOS device
+        // Detect iOS and Android devices
         const userAgent = navigator.userAgent || navigator.vendor;
         const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+        const isAndroidDevice = /android/i.test(userAgent);
         setIsIOS(isIOSDevice);
+        setIsAndroid(isAndroidDevice);
 
         if (!userId) {
             setError("Invalid catalog link");
@@ -171,14 +181,26 @@ export default function PublicCatalogPage() {
             {/* Header */}
             <div className="bg-white border-b sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-4 py-4">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                            <Store className="h-5 w-5 text-purple-600" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                <Store className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                                <h1 className="font-semibold text-lg">{business?.name || "Catalog"}</h1>
+                                <p className="text-xs text-muted-foreground">{items.length} products</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="font-semibold text-lg">{business?.name || "Catalog"}</h1>
-                            <p className="text-xs text-muted-foreground">{items.length} products</p>
-                        </div>
+                        {isAndroid && (
+                            <Button variant="outline" size="icon" className="relative">
+                                <ShoppingCart className="h-5 w-5" />
+                                {cart.length > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                        {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                                    </span>
+                                )}
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
