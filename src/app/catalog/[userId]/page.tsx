@@ -324,7 +324,8 @@ export default function PublicCatalogPage() {
                                 <p className="text-xs text-muted-foreground">{items.length} products</p>
                             </div>
                         </div>
-                        {isAndroid && (
+                        {/* Show cart on Android and desktop (not iOS) for testing */}
+                        {!isIOS && (
                             <Button variant="outline" size="icon" className="relative" onClick={handleCartClick}>
                                 <ShoppingCart className="h-5 w-5" />
                                 {cart.length > 0 && (
