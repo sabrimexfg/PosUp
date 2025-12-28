@@ -8,13 +8,27 @@ import { useItems, Item } from "@/contexts/ItemsContext";
 import { db, collection, query, where, orderBy, onSnapshot } from "@/lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ImageOff, ShoppingCart } from "lucide-react";
+
+interface CartItem {
+    item: Item;
+    quantity: number;
+}
 
 export default function CatalogPage() {
     const { user, userLoading, addReads } = useItems();
     const router = useRouter();
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAndroid, setIsAndroid] = useState(false);
+    const [cart, setCart] = useState<CartItem[]>([]);
+
+    // Detect Android device
+    useEffect(() => {
+        const userAgent = navigator.userAgent.toLowerCase();
+        setIsAndroid(/android/i.test(userAgent));
+    }, []);
 
     useEffect(() => {
         if (userLoading) return;
@@ -95,6 +109,16 @@ export default function CatalogPage() {
                             </span>
                             Live sync
                         </div>
+                        {isAndroid && (
+                            <Button variant="outline" size="icon" className="relative">
+                                <ShoppingCart className="h-5 w-5" />
+                                {cart.length > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                        {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                                    </span>
+                                )}
+                            </Button>
+                        )}
                     </div>
                 </div>
 
