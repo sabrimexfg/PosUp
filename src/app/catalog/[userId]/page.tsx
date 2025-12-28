@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc } from "@/lib/firebase";
+import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ImageOff, Store, ShoppingCart, Loader2 } from "lucide-react";
+import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Item {
     id: string;
@@ -74,6 +82,8 @@ export default function PublicCatalogPage() {
     const [existingCustomer, setExistingCustomer] = useState(false);
     const [isReturningUser, setIsReturningUser] = useState(false);
     const [pendingRedirect, setPendingRedirect] = useState(false);
+    const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
+    const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
     // Handle redirect result on page load (for incognito/mobile where popup doesn't work)
     useEffect(() => {
@@ -286,6 +296,16 @@ export default function PublicCatalogPage() {
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            setExistingCustomer(false);
+            setCurrentUser(null);
+        } catch (err) {
+            console.error("Error signing out:", err);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 p-6">
@@ -366,16 +386,57 @@ export default function PublicCatalogPage() {
                                 <p className="text-xs text-muted-foreground">{items.length} products</p>
                             </div>
                         </div>
-                        {/* Show cart on Android and desktop (not iOS) for testing */}
+                        {/* Show cart and user menu on Android and desktop (not iOS) */}
                         {!isIOS && (
-                            <Button variant="outline" size="icon" className="relative" onClick={handleCartClick}>
-                                <ShoppingCart className="h-5 w-5" />
-                                {cart.length > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                        {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                                    </span>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="icon" className="relative" onClick={handleCartClick}>
+                                    <ShoppingCart className="h-5 w-5" />
+                                    {cart.length > 0 && (
+                                        <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                            {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                                        </span>
+                                    )}
+                                </Button>
+
+                                {/* User Menu */}
+                                {currentUser ? (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" size="icon" className="rounded-full">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarImage src={currentUser.photoURL || undefined} alt={currentUser.displayName || "User"} />
+                                                    <AvatarFallback>
+                                                        {currentUser.displayName?.charAt(0).toUpperCase() || <UserIcon className="h-4 w-4" />}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-48">
+                                            <div className="px-2 py-1.5 text-sm font-medium truncate">
+                                                {currentUser.displayName || currentUser.email}
+                                            </div>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => setOrdersDialogOpen(true)}>
+                                                <Package className="mr-2 h-4 w-4" />
+                                                View Orders
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setSettingsDialogOpen(true)}>
+                                                <Settings className="mr-2 h-4 w-4" />
+                                                Account Settings
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                                                <LogOut className="mr-2 h-4 w-4" />
+                                                Log out
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                ) : (
+                                    <Button variant="outline" size="icon" onClick={() => setAuthDialogOpen(true)}>
+                                        <UserIcon className="h-5 w-5" />
+                                    </Button>
                                 )}
-                            </Button>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -569,6 +630,66 @@ export default function PublicCatalogPage() {
                                 "Complete"
                             )}
                         </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Orders Dialog */}
+            <Dialog open={ordersDialogOpen} onOpenChange={setOrdersDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Your Orders</DialogTitle>
+                        <DialogDescription>
+                            View your order history
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="text-center text-muted-foreground py-8">
+                            <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No orders yet</p>
+                            <p className="text-sm">Your order history will appear here</p>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Account Settings Dialog */}
+            <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Account Settings</DialogTitle>
+                        <DialogDescription>
+                            Manage your account information
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        {currentUser && (
+                            <>
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                    <Avatar className="h-12 w-12">
+                                        <AvatarImage src={currentUser.photoURL || undefined} />
+                                        <AvatarFallback>
+                                            {currentUser.displayName?.charAt(0).toUpperCase() || <UserIcon className="h-6 w-6" />}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-medium">{currentUser.displayName}</p>
+                                        <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => {
+                                        setSettingsDialogOpen(false);
+                                        setAddressFormOpen(true);
+                                    }}
+                                >
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    Update Shipping Address
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
