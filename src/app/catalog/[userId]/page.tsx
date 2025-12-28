@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth, provider, signInWithPopup, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc } from "@/lib/firebase";
+import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -73,6 +73,34 @@ export default function PublicCatalogPage() {
     });
     const [existingCustomer, setExistingCustomer] = useState(false);
     const [isReturningUser, setIsReturningUser] = useState(false);
+    const [pendingRedirect, setPendingRedirect] = useState(false);
+
+    // Handle redirect result on page load (for incognito/mobile where popup doesn't work)
+    useEffect(() => {
+        const handleRedirectResult = async () => {
+            try {
+                const result = await getRedirectResult(auth);
+                if (result?.user && userId) {
+                    // User just signed in via redirect
+                    const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
+                    if (customerDoc.exists()) {
+                        setExistingCustomer(true);
+                    } else {
+                        // Pre-fill name from Google account and show address form
+                        setAddressForm(prev => ({
+                            ...prev,
+                            recipientName: result.user.displayName || ""
+                        }));
+                        setAddressFormOpen(true);
+                    }
+                }
+            } catch (err) {
+                console.error("Error handling redirect result:", err);
+            }
+        };
+
+        handleRedirectResult();
+    }, [userId]);
 
     useEffect(() => {
         // Detect iOS and Android devices
@@ -182,6 +210,7 @@ export default function PublicCatalogPage() {
     const handleGoogleSignIn = async () => {
         setSigningIn(true);
         try {
+            // Try popup first
             const result = await signInWithPopup(auth, provider);
             setAuthDialogOpen(false);
             // Check if customer exists
@@ -196,8 +225,21 @@ export default function PublicCatalogPage() {
                 }));
                 setAddressFormOpen(true);
             }
-        } catch (err) {
-            console.error("Error signing in:", err);
+        } catch (err: any) {
+            console.error("Popup sign-in failed, trying redirect:", err);
+            // If popup fails (COOP issues, incognito, popup blocked), use redirect
+            if (err.code === 'auth/popup-closed-by-user' ||
+                err.code === 'auth/popup-blocked' ||
+                err.message?.includes('Cross-Origin-Opener-Policy')) {
+                try {
+                    setAuthDialogOpen(false);
+                    setPendingRedirect(true);
+                    await signInWithRedirect(auth, provider);
+                } catch (redirectErr) {
+                    console.error("Redirect sign-in also failed:", redirectErr);
+                    setPendingRedirect(false);
+                }
+            }
         } finally {
             setSigningIn(false);
         }
