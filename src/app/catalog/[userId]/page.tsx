@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc } from "@/lib/firebase";
+import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2 } from "lucide-react";
+import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -51,6 +51,33 @@ interface OnlineCustomerAddress {
     country: string;
 }
 
+interface OnlineOrderItem {
+    itemId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    total: number;
+    imageUrl?: string | null;
+    category: string;
+}
+
+interface OnlineOrder {
+    id: string;
+    orderNumber: string;
+    customerId: string;
+    customerEmail: string;
+    customerName: string;
+    shippingAddress?: OnlineCustomerAddress | null;
+    items: OnlineOrderItem[];
+    subtotal: number;
+    total: number;
+    status: string;
+    paymentMethod: string;
+    source: string;
+    timestamp: number;
+    createdAt: number;
+}
+
 export default function PublicCatalogPage() {
     const params = useParams();
     const userId = params.userId as string;
@@ -85,6 +112,11 @@ export default function PublicCatalogPage() {
     const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
     const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
     const [cartDialogOpen, setCartDialogOpen] = useState(false);
+    const [placingOrder, setPlacingOrder] = useState(false);
+    const [orderSuccessDialogOpen, setOrderSuccessDialogOpen] = useState(false);
+    const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
+    const [pendingOrders, setPendingOrders] = useState<OnlineOrder[]>([]);
+    const [pendingOrdersDialogOpen, setPendingOrdersDialogOpen] = useState(false);
 
     // Handle redirect result on page load (for incognito/mobile where popup doesn't work)
     useEffect(() => {
@@ -207,6 +239,34 @@ export default function PublicCatalogPage() {
         return () => unsubscribe();
     }, [userId]);
 
+    // Listen to customer's pending orders (real-time)
+    useEffect(() => {
+        if (!currentUser || !userId) {
+            setPendingOrders([]);
+            return;
+        }
+
+        const ordersRef = collection(db, `users/${userId}/online_orders`);
+        const q = query(
+            ordersRef,
+            where("customerId", "==", currentUser.uid),
+            where("status", "==", "pending"),
+            orderBy("timestamp", "desc")
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const orders: OnlineOrder[] = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as OnlineOrder));
+            setPendingOrders(orders);
+        }, (error) => {
+            console.error("Error listening to pending orders:", error);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser, userId]);
+
     const handleCartClick = () => {
         if (!currentUser) {
             setAuthDialogOpen(true);
@@ -256,6 +316,63 @@ export default function PublicCatalogPage() {
     const getItemQuantityInCart = (itemId: string) => {
         const cartItem = cart.find(ci => ci.item.id === itemId);
         return cartItem?.quantity || 0;
+    };
+
+    const generateOrderNumber = () => {
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+        return `ONL-${timestamp}-${random}`;
+    };
+
+    const handlePlaceOrder = async () => {
+        if (!currentUser || !userId || cart.length === 0) return;
+
+        setPlacingOrder(true);
+        try {
+            // Fetch customer data for the order
+            const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${currentUser.uid}`));
+            const customerData = customerDoc.exists() ? customerDoc.data() : null;
+
+            const orderNumber = generateOrderNumber();
+            const orderItems = cart.map(ci => ({
+                itemId: ci.item.id,
+                name: ci.item.name,
+                price: ci.item.price,
+                quantity: ci.quantity,
+                total: ci.item.price * ci.quantity,
+                imageUrl: ci.item.imageUrl || null,
+                category: ci.item.category
+            }));
+
+            const orderData = {
+                orderNumber,
+                customerId: currentUser.uid,
+                customerEmail: currentUser.email,
+                customerName: customerData?.name || currentUser.displayName || "Unknown",
+                shippingAddress: customerData?.address || null,
+                items: orderItems,
+                subtotal: getCartTotal(),
+                total: getCartTotal(),
+                status: "pending",
+                paymentMethod: "online",
+                source: "web_catalog",
+                timestamp: Date.now(),
+                createdAt: Date.now()
+            };
+
+            // Save to online_orders subcollection
+            await addDoc(collection(db, `users/${userId}/online_orders`), orderData);
+
+            // Clear cart and show success
+            setCart([]);
+            setCartDialogOpen(false);
+            setLastOrderNumber(orderNumber);
+            setOrderSuccessDialogOpen(true);
+        } catch (err) {
+            console.error("Error placing order:", err);
+        } finally {
+            setPlacingOrder(false);
+        }
     };
 
     const handleGoogleSignIn = async () => {
@@ -483,6 +600,12 @@ export default function PublicCatalogPage() {
                                                 {currentUser.displayName || currentUser.email}
                                             </div>
                                             <DropdownMenuSeparator />
+                                            {pendingOrders.length > 0 && (
+                                                <DropdownMenuItem onClick={() => setPendingOrdersDialogOpen(true)} className="text-orange-600">
+                                                    <Clock className="mr-2 h-4 w-4" />
+                                                    Pending Orders ({pendingOrders.length})
+                                                </DropdownMenuItem>
+                                            )}
                                             <DropdownMenuItem onClick={() => setOrdersDialogOpen(true)}>
                                                 <Package className="mr-2 h-4 w-4" />
                                                 View Orders
@@ -862,13 +985,132 @@ export default function PublicCatalogPage() {
                                 <Button
                                     className="w-full bg-purple-600 hover:bg-purple-700 mt-4"
                                     size="lg"
-                                    onClick={() => {
-                                        // TODO: Implement order placement
-                                        console.log("Place order", cart);
-                                    }}
+                                    onClick={handlePlaceOrder}
+                                    disabled={placingOrder}
                                 >
-                                    Place Order
+                                    {placingOrder ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                            Placing Order...
+                                        </>
+                                    ) : (
+                                        "Place Order"
+                                    )}
                                 </Button>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Order Success Dialog */}
+            <Dialog open={orderSuccessDialogOpen} onOpenChange={setOrderSuccessDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <div className="text-center py-6">
+                        <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle className="h-8 w-8 text-green-600" />
+                        </div>
+                        <DialogTitle className="text-xl mb-2">Order Placed!</DialogTitle>
+                        <DialogDescription className="text-base">
+                            Your order has been successfully placed.
+                        </DialogDescription>
+                        {lastOrderNumber && (
+                            <p className="mt-4 text-sm text-muted-foreground">
+                                Order Number: <span className="font-mono font-semibold">{lastOrderNumber}</span>
+                            </p>
+                        )}
+                        <Button
+                            className="mt-6 bg-purple-600 hover:bg-purple-700"
+                            onClick={() => setOrderSuccessDialogOpen(false)}
+                        >
+                            Continue Shopping
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Pending Orders Dialog */}
+            <Dialog open={pendingOrdersDialogOpen} onOpenChange={setPendingOrdersDialogOpen}>
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-orange-500" />
+                            Pending Orders
+                        </DialogTitle>
+                        <DialogDescription>
+                            {pendingOrders.length === 0
+                                ? "No pending orders"
+                                : `${pendingOrders.length} order${pendingOrders.length !== 1 ? 's' : ''} awaiting confirmation`
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        {pendingOrders.length === 0 ? (
+                            <div className="text-center text-muted-foreground py-8">
+                                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>No pending orders</p>
+                                <p className="text-sm">Your pending orders will appear here</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {pendingOrders.map((order) => (
+                                    <div key={order.id} className="border rounded-lg p-4 space-y-3">
+                                        {/* Order Header */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-mono text-sm font-semibold">{order.orderNumber}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {new Date(order.timestamp).toLocaleDateString()} at {new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                                                </span>
+                                                Pending Confirmation
+                                            </div>
+                                        </div>
+
+                                        {/* Order Items */}
+                                        <div className="space-y-2">
+                                            {order.items.map((item, idx) => (
+                                                <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-md">
+                                                    <div className="h-10 w-10 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+                                                        {item.imageUrl ? (
+                                                            <img
+                                                                src={item.imageUrl}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                <ImageOff className="h-4 w-4 text-muted-foreground/40" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-sm truncate">{item.name}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            ${item.price.toFixed(2)} × {item.quantity}
+                                                        </p>
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-purple-600">
+                                                        ${item.total.toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Order Total */}
+                                        <div className="border-t pt-3 flex justify-between items-center">
+                                            <span className="font-medium">Total</span>
+                                            <span className="text-lg font-bold text-purple-600">
+                                                ${order.total.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
