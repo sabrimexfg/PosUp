@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings } from "lucide-react";
+import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2 } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -84,6 +84,7 @@ export default function PublicCatalogPage() {
     const [pendingRedirect, setPendingRedirect] = useState(false);
     const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
     const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+    const [cartDialogOpen, setCartDialogOpen] = useState(false);
 
     // Handle redirect result on page load (for incognito/mobile where popup doesn't work)
     useEffect(() => {
@@ -212,9 +213,49 @@ export default function PublicCatalogPage() {
         } else if (!existingCustomer) {
             setAddressFormOpen(true);
         } else {
-            // TODO: Show cart contents
-            console.log("Show cart");
+            setCartDialogOpen(true);
         }
+    };
+
+    const addToCart = (item: Item) => {
+        setCart(prev => {
+            const existing = prev.find(ci => ci.item.id === item.id);
+            if (existing) {
+                return prev.map(ci =>
+                    ci.item.id === item.id
+                        ? { ...ci, quantity: ci.quantity + 1 }
+                        : ci
+                );
+            }
+            return [...prev, { item, quantity: 1 }];
+        });
+    };
+
+    const updateCartQuantity = (itemId: string, delta: number) => {
+        setCart(prev => {
+            return prev
+                .map(ci => {
+                    if (ci.item.id === itemId) {
+                        const newQty = ci.quantity + delta;
+                        return newQty > 0 ? { ...ci, quantity: newQty } : null;
+                    }
+                    return ci;
+                })
+                .filter((ci): ci is CartItem => ci !== null);
+        });
+    };
+
+    const removeFromCart = (itemId: string) => {
+        setCart(prev => prev.filter(ci => ci.item.id !== itemId));
+    };
+
+    const getCartTotal = () => {
+        return cart.reduce((sum, ci) => sum + (ci.item.price * ci.quantity), 0);
+    };
+
+    const getItemQuantityInCart = (itemId: string) => {
+        const cartItem = cart.find(ci => ci.item.id === itemId);
+        return cartItem?.quantity || 0;
     };
 
     const handleGoogleSignIn = async () => {
@@ -480,34 +521,52 @@ export default function PublicCatalogPage() {
                     </Card>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {items.map((item) => (
-                            <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                                <div className="aspect-square bg-gray-100 relative">
-                                    {item.imageUrl ? (
-                                        <img
-                                            src={item.imageUrl}
-                                            alt={item.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <ImageOff className="h-8 w-8 text-muted-foreground/40" />
-                                        </div>
-                                    )}
-                                </div>
-                                <CardContent className="p-3">
-                                    <h3 className="font-medium text-sm truncate" title={item.name}>
-                                        {item.name}
-                                    </h3>
-                                    <p className="text-lg font-bold text-purple-600">
-                                        ${item.price.toFixed(2)}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                        {item.category}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        ))}
+                        {items.map((item) => {
+                            const qtyInCart = getItemQuantityInCart(item.id);
+                            return (
+                                <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                                    <div className="aspect-square bg-gray-100 relative">
+                                        {item.imageUrl ? (
+                                            <img
+                                                src={item.imageUrl}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <ImageOff className="h-8 w-8 text-muted-foreground/40" />
+                                            </div>
+                                        )}
+                                        {qtyInCart > 0 && (
+                                            <div className="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                                                {qtyInCart}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <CardContent className="p-3">
+                                        <h3 className="font-medium text-sm truncate" title={item.name}>
+                                            {item.name}
+                                        </h3>
+                                        <p className="text-lg font-bold text-purple-600">
+                                            ${item.price.toFixed(2)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate mb-2">
+                                            {item.category}
+                                        </p>
+                                        {currentUser && existingCustomer && (
+                                            <Button
+                                                size="sm"
+                                                className="w-full bg-purple-600 hover:bg-purple-700"
+                                                onClick={() => addToCart(item)}
+                                            >
+                                                <Plus className="h-4 w-4 mr-1" />
+                                                Add to Cart
+                                            </Button>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -712,6 +771,105 @@ export default function PublicCatalogPage() {
                                     Update Shipping Address
                                 </Button>
                             </>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Cart Dialog */}
+            <Dialog open={cartDialogOpen} onOpenChange={setCartDialogOpen}>
+                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Your Cart</DialogTitle>
+                        <DialogDescription>
+                            {cart.length === 0
+                                ? "Your cart is empty"
+                                : `${cart.reduce((sum, ci) => sum + ci.quantity, 0)} item${cart.reduce((sum, ci) => sum + ci.quantity, 0) !== 1 ? 's' : ''} in your cart`
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        {cart.length === 0 ? (
+                            <div className="text-center text-muted-foreground py-8">
+                                <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>No items in cart</p>
+                                <p className="text-sm">Add items from the catalog to get started</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {cart.map((cartItem) => (
+                                    <div key={cartItem.item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                        <div className="h-12 w-12 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+                                            {cartItem.item.imageUrl ? (
+                                                <img
+                                                    src={cartItem.item.imageUrl}
+                                                    alt={cartItem.item.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <ImageOff className="h-5 w-5 text-muted-foreground/40" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm truncate">{cartItem.item.name}</p>
+                                            <p className="text-sm text-purple-600 font-semibold">
+                                                ${(cartItem.item.price * cartItem.quantity).toFixed(2)}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => updateCartQuantity(cartItem.item.id, -1)}
+                                            >
+                                                <Minus className="h-3 w-3" />
+                                            </Button>
+                                            <span className="w-8 text-center text-sm font-medium">
+                                                {cartItem.quantity}
+                                            </span>
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => updateCartQuantity(cartItem.item.id, 1)}
+                                            >
+                                                <Plus className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                onClick={() => removeFromCart(cartItem.item.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Total */}
+                                <div className="border-t pt-4 mt-4">
+                                    <div className="flex justify-between items-center text-lg font-bold">
+                                        <span>Total</span>
+                                        <span className="text-purple-600">${getCartTotal().toFixed(2)}</span>
+                                    </div>
+                                </div>
+
+                                {/* Place Order Button */}
+                                <Button
+                                    className="w-full bg-purple-600 hover:bg-purple-700 mt-4"
+                                    size="lg"
+                                    onClick={() => {
+                                        // TODO: Implement order placement
+                                        console.log("Place order", cart);
+                                    }}
+                                >
+                                    Place Order
+                                </Button>
+                            </div>
                         )}
                     </div>
                 </DialogContent>
