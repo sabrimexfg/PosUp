@@ -32,6 +32,7 @@ export default function PublicCatalogPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isIOS, setIsIOS] = useState(false);
+    const [catalogDisabled, setCatalogDisabled] = useState(false);
 
     useEffect(() => {
         // Detect iOS device
@@ -47,10 +48,18 @@ export default function PublicCatalogPage() {
 
         async function fetchCatalog() {
             try {
-                // Fetch business info
+                // Fetch business info and check if public catalog is enabled
                 const userDoc = await getDoc(doc(db, `users/${userId}`));
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
+
+                    // Check if public catalog is enabled (defaults to false if not set)
+                    if (userData.publicCatalogEnabled !== true) {
+                        setCatalogDisabled(true);
+                        setLoading(false);
+                        return;
+                    }
+
                     if (userData.business) {
                         setBusiness({
                             name: userData.business.name || "Store",
@@ -58,6 +67,10 @@ export default function PublicCatalogPage() {
                             address: userData.business.address
                         });
                     }
+                } else {
+                    setError("Store not found");
+                    setLoading(false);
+                    return;
                 }
 
                 // Fetch catalog items (only filter by inCustomerCatalog to avoid needing composite index)
@@ -116,6 +129,18 @@ export default function PublicCatalogPage() {
                     <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h1 className="text-xl font-semibold mb-2">Catalog Not Available</h1>
                     <p className="text-muted-foreground">{error}</p>
+                </Card>
+            </div>
+        );
+    }
+
+    if (catalogDisabled) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+                <Card className="p-8 text-center max-w-md">
+                    <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h1 className="text-xl font-semibold mb-2">Catalog Not Available</h1>
+                    <p className="text-muted-foreground">This store&apos;s public catalog is currently disabled.</p>
                 </Card>
             </div>
         );
