@@ -4,90 +4,60 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, db, onAuthStateChanged, User, collection, getDocs, query, orderBy, limit, startAfter, DocumentSnapshot } from "@/lib/firebase";
-import { Button } from "@/components/ui/button";
+import { useItems, Item } from "@/contexts/ItemsContext";
+import { db, collection, query, where, orderBy, onSnapshot } from "@/lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ImageOff } from "lucide-react";
-
-interface Item {
-    id: string;
-    name: string;
-    category: string;
-    price: number;
-    currentStock: number;
-    imageUrl?: string;
-}
+import { ImageOff } from "lucide-react";
 
 export default function CatalogPage() {
-    const [user, setUser] = useState<User | null>(null);
-    const [items, setItems] = useState<Item[]>([]);
-    const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
+    const { user, userLoading, addReads } = useItems();
     const router = useRouter();
-
-    const ITEMS_PER_PAGE = 20;
+    const [items, setItems] = useState<Item[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            if (!currentUser) {
-                router.push("/dashboard/login");
-            } else {
-                setUser(currentUser);
-                fetchItems(currentUser.uid, true);
-            }
-        });
-        return () => unsubscribe();
-    }, [router]);
+        if (userLoading) return;
+        if (!user) {
+            router.push("/dashboard/login");
+            return;
+        }
 
-    const fetchItems = async (uid: string, isInitial: boolean = false) => {
-        try {
-            if (isInitial) {
-                setLoading(true);
-            } else {
-                setLoadingMore(true);
-            }
+        // Query only items where inCustomerCatalog is true
+        const itemsRef = collection(db, `users/${user.uid}/items`);
+        const q = query(
+            itemsRef,
+            where("inCustomerCatalog", "==", true),
+            orderBy("name")
+        );
 
-            const itemsRef = collection(db, `users/${uid}/items`);
+        let isFirstSnapshot = true;
 
-            let q = query(itemsRef, orderBy("name"), limit(ITEMS_PER_PAGE));
-
-            if (!isInitial && lastDoc) {
-                q = query(itemsRef, orderBy("name"), startAfter(lastDoc), limit(ITEMS_PER_PAGE));
-            }
-
-            const snapshot = await getDocs(q);
-            const newItems: Item[] = snapshot.docs.map(doc => ({
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const catalogItems: Item[] = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             } as Item));
 
-            if (isInitial) {
-                setItems(newItems);
-            } else {
-                setItems(prev => [...prev, ...newItems]);
+            setItems(catalogItems);
+
+            // Only count reads on initial load, not on real-time updates
+            if (isFirstSnapshot) {
+                const fromCache = snapshot.metadata.fromCache;
+                addReads(snapshot.docs.length, fromCache);
+                isFirstSnapshot = false;
             }
 
-            setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-            setHasMore(snapshot.docs.length === ITEMS_PER_PAGE);
-
-        } catch (error) {
-            console.error("Error fetching items:", error);
-        } finally {
             setLoading(false);
-            setLoadingMore(false);
-        }
-    };
+        }, (error) => {
+            console.error("Error listening to catalog items:", error);
+            setLoading(false);
+        });
 
-    const handleLoadMore = () => {
-        if (user && !loadingMore && hasMore) {
-            fetchItems(user.uid);
-        }
-    };
+        return () => unsubscribe();
+    }, [user, userLoading, router, addReads]);
 
-    if (loading) {
+    if (userLoading || loading) {
         return (
             <div className="min-h-screen bg-gray-50/50 p-6">
                 <div className="max-w-6xl space-y-6">
@@ -114,17 +84,26 @@ export default function CatalogPage() {
             <div className="max-w-6xl space-y-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-bold tracking-tight">Catalog</h1>
-                    <span className="text-sm text-muted-foreground">
-                        {items.length} {hasMore ? "+" : ""} products
-                    </span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm text-muted-foreground">
+                            {items.length} products
+                        </span>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            Live sync
+                        </div>
+                    </div>
                 </div>
 
                 {items.length === 0 ? (
                     <Card className="p-12">
                         <div className="text-center text-muted-foreground">
                             <ImageOff className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p className="text-lg font-medium">No products found</p>
-                            <p className="text-sm">Add items to your inventory to see them here.</p>
+                            <p className="text-lg font-medium">No products in catalog</p>
+                            <p className="text-sm">Enable &quot;In Customer Catalog&quot; on items in Inventory to show them here.</p>
                         </div>
                     </Card>
                 ) : (
@@ -158,25 +137,6 @@ export default function CatalogPage() {
                             </Card>
                         ))}
                     </div>
-                )}
-
-                {hasMore && items.length > 0 && (
-                    <div className="flex justify-center pt-4">
-                        <Button onClick={handleLoadMore} disabled={loadingMore} variant="secondary" size="lg">
-                            {loadingMore ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Loading...
-                                </>
-                            ) : (
-                                "Load More"
-                            )}
-                        </Button>
-                    </div>
-                )}
-
-                {!hasMore && items.length > 0 && (
-                    <p className="text-center text-xs text-muted-foreground">All products loaded.</p>
                 )}
             </div>
         </div>

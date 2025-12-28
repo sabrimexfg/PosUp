@@ -4,7 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, db, onAuthStateChanged, User, collection, updateDoc, doc, query, orderBy, onSnapshot } from "@/lib/firebase";
+import { useItems, Item } from "@/contexts/ItemsContext";
+import { db, collection, query, orderBy, limit, where, onSnapshot } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,31 +29,26 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, ImageOff } from "lucide-react";
+import { Loader2, ImageOff, Search, X } from "lucide-react";
 
-interface Item {
-    id: string;
-    name: string;
-    category: string;
-    price: number;
-    cost: number;
-    currentStock: number;
-    minStockLevel: number;
-    maxStockLevel: number;
-    unit: string;
-    trackInventory: boolean;
-    trackProfit: boolean;
-    inCustomerCatalog?: boolean;
-    imageUrl?: string;
-    isDeleted?: boolean;
-    updatedAt?: number;
-}
+const PAGE_SIZE = 50;
 
 export default function InventoryPage() {
-    const [user, setUser] = useState<User | null>(null);
+    const { user, userLoading, updateItem, addReads } = useItems();
+    const router = useRouter();
+
+    // Items state
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
+    const [categories, setCategories] = useState<string[]>([]);
+
+    // Search/filter state
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+    // Pagination state
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     // Edit dialog state
     const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -71,13 +67,6 @@ export default function InventoryPage() {
         inCustomerCatalog: false,
     });
     const [isSaving, setIsSaving] = useState(false);
-    const [categories, setCategories] = useState<string[]>([]);
-
-    // Extract unique categories from items
-    const updateCategories = (itemsList: Item[]) => {
-        const uniqueCategories = [...new Set(itemsList.map(item => item.category).filter(Boolean))].sort();
-        setCategories(uniqueCategories);
-    };
 
     const unitOptions = [
         { value: "unit", label: "Unit" },
@@ -91,42 +80,85 @@ export default function InventoryPage() {
         { value: "case", label: "Case" },
     ];
 
+    // Track current page for pagination
+    const [currentPage, setCurrentPage] = useState(1);
+
+    // Main data fetching effect
     useEffect(() => {
-        let unsubscribeItems: (() => void) | null = null;
+        if (userLoading) return;
+        if (!user) {
+            router.push("/");
+            return;
+        }
 
-        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-            if (!currentUser) {
-                router.push("/");
-            } else {
-                setUser(currentUser);
+        setLoading(true);
+        const itemsRef = collection(db, `users/${user.uid}/items`);
+        const constraints: Parameters<typeof query>[1][] = [];
 
-                // Set up real-time listener for items
-                const itemsRef = collection(db, `users/${currentUser.uid}/items`);
-                const q = query(itemsRef, orderBy("name"));
+        // Category filter
+        if (selectedCategory && selectedCategory !== "all") {
+            constraints.push(where("category", "==", selectedCategory));
+        }
 
-                unsubscribeItems = onSnapshot(q, (snapshot) => {
-                    const allItems: Item[] = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    } as Item));
+        // Search filter (prefix search on name)
+        if (searchTerm.trim()) {
+            const term = searchTerm.trim();
+            constraints.push(where("name", ">=", term));
+            constraints.push(where("name", "<=", term + "\uf8ff"));
+        } else {
+            constraints.push(orderBy("name"));
+        }
 
-                    setItems(allItems);
-                    updateCategories(allItems);
-                    setLoading(false);
-                }, (error) => {
-                    console.error("Error listening to items:", error);
-                    setLoading(false);
-                });
+        // Apply limit based on current page
+        constraints.push(limit(PAGE_SIZE * currentPage));
+
+        const q = query(itemsRef, ...constraints);
+
+        let isFirstSnapshot = true;
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const allItems: Item[] = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Item));
+
+            setItems(allItems);
+
+            // Extract unique categories from results
+            const uniqueCategories = [...new Set(allItems.map(item => item.category).filter(Boolean))].sort();
+            setCategories(uniqueCategories);
+
+            // Track pagination - has more if we got exactly what we asked for
+            setHasMore(snapshot.docs.length >= PAGE_SIZE * currentPage);
+
+            // Only count reads on initial load, not on real-time updates
+            if (isFirstSnapshot) {
+                const fromCache = snapshot.metadata.fromCache;
+                addReads(snapshot.docs.length, fromCache);
+                isFirstSnapshot = false;
             }
+
+            setLoading(false);
+        }, (error) => {
+            console.error("Error listening to items:", error);
+            setLoading(false);
         });
 
-        return () => {
-            unsubscribeAuth();
-            if (unsubscribeItems) {
-                unsubscribeItems();
-            }
-        };
-    }, [router]);
+        return () => unsubscribe();
+    }, [user, userLoading, router, selectedCategory, searchTerm, addReads, currentPage]);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategory, searchTerm]);
+
+    const handleLoadMore = () => {
+        if (!hasMore || loadingMore) return;
+        setLoadingMore(true);
+        setCurrentPage(prev => prev + 1);
+        // loadingMore will be set to false when the effect completes
+        setTimeout(() => setLoadingMore(false), 500);
+    };
 
     const handleRowClick = (item: Item) => {
         setEditingItem(item);
@@ -151,8 +183,7 @@ export default function InventoryPage() {
 
         setIsSaving(true);
         try {
-            const itemRef = doc(db, `users/${user.uid}/items`, editingItem.id);
-            const updatedData = {
+            await updateItem(editingItem.id, {
                 name: editForm.name,
                 category: editForm.category,
                 price: parseFloat(editForm.price) || 0,
@@ -164,11 +195,7 @@ export default function InventoryPage() {
                 trackInventory: editForm.trackInventory,
                 trackProfit: editForm.trackProfit,
                 inCustomerCatalog: editForm.inCustomerCatalog,
-                updatedAt: Date.now(),
-            };
-
-            // Update in Firebase - real-time listener will update local state automatically
-            await updateDoc(itemRef, updatedData);
+            });
 
             setEditDialogOpen(false);
             setEditingItem(null);
@@ -179,7 +206,12 @@ export default function InventoryPage() {
         }
     };
 
-    if (loading) {
+    const clearSearch = () => {
+        setSearchTerm("");
+        setSelectedCategory("all");
+    };
+
+    if (userLoading || loading) {
         return (
             <div className="flex h-screen w-full flex-col p-8 space-y-4 max-w-6xl mx-auto">
                 <div className="flex items-center gap-4">
@@ -200,7 +232,7 @@ export default function InventoryPage() {
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 
     return (
@@ -208,10 +240,49 @@ export default function InventoryPage() {
             <div className="max-w-6xl space-y-6">
                 <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
 
+                {/* Search and Filter Bar */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 pr-9"
+                        />
+                        {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm("")}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {categories.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                    {category}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {(searchTerm || selectedCategory !== "all") && (
+                        <Button variant="ghost" onClick={clearSearch} className="sm:w-auto">
+                            Clear filters
+                        </Button>
+                    )}
+                </div>
+
                 <Card>
                     <CardHeader>
                         <div className="flex items-center justify-between">
-                            <CardTitle>Products ({items.length})</CardTitle>
+                            <CardTitle>Products ({items.length}{hasMore ? "+" : ""})</CardTitle>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -236,7 +307,9 @@ export default function InventoryPage() {
                                 {items.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                                            No items found.
+                                            {searchTerm || selectedCategory !== "all"
+                                                ? "No items match your search."
+                                                : "No items found."}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -267,6 +340,26 @@ export default function InventoryPage() {
                                 )}
                             </TableBody>
                         </Table>
+
+                        {/* Load More Button */}
+                        {hasMore && items.length > 0 && (
+                            <div className="mt-4 flex justify-center">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleLoadMore}
+                                    disabled={loadingMore}
+                                >
+                                    {loadingMore ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Loading...
+                                        </>
+                                    ) : (
+                                        "Load More"
+                                    )}
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
