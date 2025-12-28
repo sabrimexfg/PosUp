@@ -306,6 +306,32 @@ export default function PublicCatalogPage() {
         }
     };
 
+    const handleUpdateShippingAddress = async () => {
+        if (!currentUser || !userId) return;
+
+        try {
+            // Fetch existing customer data to pre-fill the form
+            const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${currentUser.uid}`));
+            if (customerDoc.exists()) {
+                const data = customerDoc.data();
+                setAddressForm({
+                    recipientName: data.name || "",
+                    streetAddress: data.address?.streetAddress || "",
+                    addressLine2: data.address?.addressLine2 || "",
+                    city: data.address?.city || "",
+                    state: data.address?.state || "",
+                    postalCode: data.address?.postalCode || "",
+                    country: data.address?.country || ""
+                });
+            }
+        } catch (err) {
+            console.error("Error fetching customer data:", err);
+        }
+
+        setSettingsDialogOpen(false);
+        setAddressFormOpen(true);
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 p-6">
@@ -680,10 +706,7 @@ export default function PublicCatalogPage() {
                                 <Button
                                     variant="outline"
                                     className="w-full"
-                                    onClick={() => {
-                                        setSettingsDialogOpen(false);
-                                        setAddressFormOpen(true);
-                                    }}
+                                    onClick={handleUpdateShippingAddress}
                                 >
                                     <Settings className="mr-2 h-4 w-4" />
                                     Update Shipping Address
