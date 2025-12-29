@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock } from "lucide-react";
+import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -117,6 +117,48 @@ export default function PublicCatalogPage() {
     const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
     const [pendingOrders, setPendingOrders] = useState<OnlineOrder[]>([]);
     const [pendingOrdersDialogOpen, setPendingOrdersDialogOpen] = useState(false);
+    const [orderCompletedDialogOpen, setOrderCompletedDialogOpen] = useState(false);
+    const [completedOrderNumber, setCompletedOrderNumber] = useState<string | null>(null);
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+
+    // Check notification permission on mount and when user logs in
+    useEffect(() => {
+        if (typeof window !== "undefined" && "Notification" in window) {
+            setNotificationPermission(Notification.permission);
+        }
+    }, [currentUser]);
+
+    // Request notification permission when user has pending orders
+    useEffect(() => {
+        if (currentUser && pendingOrders.length > 0 && notificationPermission === "default") {
+            // Request permission when user has pending orders
+            if ("Notification" in window) {
+                Notification.requestPermission().then(permission => {
+                    setNotificationPermission(permission);
+                });
+            }
+        }
+    }, [currentUser, pendingOrders.length, notificationPermission]);
+
+    // Helper function to send browser notification
+    const sendBrowserNotification = (title: string, body: string, orderNumber: string) => {
+        if (typeof window === "undefined" || !("Notification" in window)) return;
+
+        if (Notification.permission === "granted") {
+            const notification = new Notification(title, {
+                body: body,
+                icon: "/favicon.ico",
+                tag: `order-${orderNumber}`, // Prevents duplicate notifications
+                requireInteraction: true, // Keep notification until user interacts
+            });
+
+            // Focus the window when notification is clicked
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+        }
+    };
 
     // Handle redirect result on page load (for incognito/mobile where popup doesn't work)
     useEffect(() => {
@@ -259,7 +301,42 @@ export default function PublicCatalogPage() {
                 id: doc.id,
                 ...doc.data()
             } as OnlineOrder));
-            setPendingOrders(orders);
+
+            // Check for completed orders (orders that were pending but are now gone)
+            // We need to track previous pending orders to detect completions
+            setPendingOrders(prevOrders => {
+                const currentIds = new Set(orders.map(o => o.id));
+
+                // Find orders that were in the previous list but not in the current list
+                // These have either been completed or cancelled
+                prevOrders.forEach(prevOrder => {
+                    if (!currentIds.has(prevOrder.id)) {
+                        // This order is no longer pending - check if it was completed
+                        // We'll fetch it to check the status
+                        getDoc(doc(db, `users/${userId}/online_orders/${prevOrder.id}`))
+                            .then(docSnap => {
+                                if (docSnap.exists()) {
+                                    const data = docSnap.data();
+                                    if (data.status === "completed") {
+                                        // Show in-app completion dialog
+                                        setCompletedOrderNumber(prevOrder.orderNumber);
+                                        setOrderCompletedDialogOpen(true);
+
+                                        // Send browser push notification
+                                        sendBrowserNotification(
+                                            "🎉 Order Ready!",
+                                            `Your order ${prevOrder.orderNumber} has been completed and is ready!`,
+                                            prevOrder.orderNumber
+                                        );
+                                    }
+                                }
+                            })
+                            .catch(err => console.error("Error checking order status:", err));
+                    }
+                });
+
+                return orders;
+            });
         }, (error) => {
             console.error("Error listening to pending orders:", error);
         });
@@ -1113,6 +1190,32 @@ export default function PublicCatalogPage() {
                                 ))}
                             </div>
                         )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Order Completed Notification Dialog */}
+            <Dialog open={orderCompletedDialogOpen} onOpenChange={setOrderCompletedDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <div className="text-center py-6">
+                        <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                            <PartyPopper className="h-8 w-8 text-green-600" />
+                        </div>
+                        <DialogTitle className="text-xl mb-2">Order Ready!</DialogTitle>
+                        <DialogDescription className="text-base">
+                            Great news! Your order has been completed and is ready.
+                        </DialogDescription>
+                        {completedOrderNumber && (
+                            <p className="mt-4 text-sm text-muted-foreground">
+                                Order Number: <span className="font-mono font-semibold">{completedOrderNumber}</span>
+                            </p>
+                        )}
+                        <Button
+                            className="mt-6 bg-green-600 hover:bg-green-700"
+                            onClick={() => setOrderCompletedDialogOpen(false)}
+                        >
+                            Awesome!
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
