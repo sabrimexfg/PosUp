@@ -384,7 +384,25 @@ export default function PublicCatalogPage() {
                 id: doc.id,
                 ...doc.data()
             } as OnlineOrder));
-            setWaitingApprovalOrders(orders);
+
+            // Check for new awaiting approval orders (orders that weren't in the previous list)
+            setWaitingApprovalOrders(prevOrders => {
+                const prevIds = new Set(prevOrders.map(o => o.id));
+
+                // Find orders that are new (not in previous list)
+                orders.forEach(order => {
+                    if (!prevIds.has(order.id) && prevOrders.length > 0) {
+                        // This is a new awaiting approval order - notify the customer
+                        sendBrowserNotification(
+                            "Order Ready for Approval!",
+                            `Your order ${order.orderNumber} has been picked and is waiting for your approval.`,
+                            order.orderNumber
+                        );
+                    }
+                });
+
+                return orders;
+            });
         }, (error) => {
             console.error("Error listening to waiting approval orders:", error);
         });
