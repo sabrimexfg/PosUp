@@ -208,33 +208,47 @@ export default function PublicCatalogPage() {
         }
 
         async function fetchCatalog() {
+            // Step 1: Fetch public profile info
+            let profileData;
             try {
-                // Fetch business info and check if public catalog is enabled
-                const userDoc = await getDoc(doc(db, `users/${userId}`));
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
+                console.log(`[Catalog] Step 1: Fetching public_profile/info for userId: ${userId}`);
+                const publicProfileDoc = await getDoc(doc(db, `users/${userId}/public_profile/info`));
 
-                    // Check if public catalog is enabled (defaults to false if not set)
-                    if (userData.publicCatalogEnabled !== true) {
-                        setCatalogDisabled(true);
-                        setLoading(false);
-                        return;
-                    }
-
-                    if (userData.business) {
-                        setBusiness({
-                            name: userData.business.name || "Store",
-                            phone: userData.business.phone,
-                            address: userData.business.address
-                        });
-                    }
-                } else {
-                    setError("Store not found");
+                if (!publicProfileDoc.exists()) {
+                    console.log("[Catalog] public_profile/info document does not exist");
+                    setError("Store not found - no public profile");
                     setLoading(false);
                     return;
                 }
 
-                // Fetch catalog items (only filter by inCustomerCatalog to avoid needing composite index)
+                profileData = publicProfileDoc.data();
+                console.log("[Catalog] Step 1 SUCCESS: Got public profile", profileData);
+
+                // Check if public catalog is enabled (defaults to false if not set)
+                if (profileData.publicCatalogEnabled !== true) {
+                    console.log("[Catalog] Catalog is disabled (publicCatalogEnabled !== true)");
+                    setCatalogDisabled(true);
+                    setLoading(false);
+                    return;
+                }
+
+                setBusiness({
+                    name: profileData.businessName || "Store",
+                    phone: profileData.businessPhone,
+                    address: profileData.businessAddress
+                });
+            } catch (err: any) {
+                console.error("[Catalog] Step 1 FAILED: Error fetching public_profile/info:", err);
+                console.error("[Catalog] Error code:", err.code);
+                console.error("[Catalog] Error message:", err.message);
+                setError(`Permission denied reading public profile (${err.code || 'unknown'})`);
+                setLoading(false);
+                return;
+            }
+
+            // Step 2: Fetch catalog items
+            try {
+                console.log(`[Catalog] Step 2: Fetching items for userId: ${userId}`);
                 const itemsRef = collection(db, `users/${userId}/items`);
                 const q = query(
                     itemsRef,
@@ -242,6 +256,8 @@ export default function PublicCatalogPage() {
                 );
 
                 const snapshot = await getDocs(q);
+                console.log(`[Catalog] Step 2 SUCCESS: Got ${snapshot.docs.length} items`);
+
                 const catalogItems: Item[] = snapshot.docs
                     .map(doc => ({
                         id: doc.id,
@@ -252,9 +268,11 @@ export default function PublicCatalogPage() {
 
                 setItems(catalogItems);
                 setLoading(false);
-            } catch (err) {
-                console.error("Error fetching catalog:", err);
-                setError("Unable to load catalog");
+            } catch (err: any) {
+                console.error("[Catalog] Step 2 FAILED: Error fetching items:", err);
+                console.error("[Catalog] Error code:", err.code);
+                console.error("[Catalog] Error message:", err.message);
+                setError(`Permission denied reading items (${err.code || 'unknown'})`);
                 setLoading(false);
             }
         }
