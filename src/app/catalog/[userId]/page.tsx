@@ -669,7 +669,7 @@ export default function PublicCatalogPage() {
                         {!isIOS && (
                             <div className="flex items-center gap-2">
                                 <Button variant="outline" size="icon" className="relative" onClick={handleCartClick}>
-                                    <ShoppingCart className="h-5 w-5" />
+                                    <ShoppingCart className="h-6 w-6" />
                                     {cart.length > 0 && (
                                         <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                                             {cart.reduce((sum, item) => sum + item.quantity, 0)}
@@ -718,7 +718,7 @@ export default function PublicCatalogPage() {
                                     </DropdownMenu>
                                 ) : (
                                     <Button variant="outline" size="icon" onClick={() => setAuthDialogOpen(true)}>
-                                        <UserIcon className="h-5 w-5" />
+                                        <UserIcon className="h-6 w-6" />
                                     </Button>
                                 )}
                             </div>
