@@ -375,7 +375,7 @@ export default function PublicCatalogPage() {
         const q = query(
             ordersRef,
             where("customerId", "==", currentUser.uid),
-            where("status", "==", "picked"),
+            where("status", "==", "awaiting_approval"),
             orderBy("timestamp", "desc")
         );
 
