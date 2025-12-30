@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper } from "lucide-react";
+import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper, ClipboardCheck } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -117,6 +117,8 @@ export default function PublicCatalogPage() {
     const [lastOrderNumber, setLastOrderNumber] = useState<string | null>(null);
     const [pendingOrders, setPendingOrders] = useState<OnlineOrder[]>([]);
     const [pendingOrdersDialogOpen, setPendingOrdersDialogOpen] = useState(false);
+    const [waitingApprovalOrders, setWaitingApprovalOrders] = useState<OnlineOrder[]>([]);
+    const [waitingApprovalDialogOpen, setWaitingApprovalDialogOpen] = useState(false);
     const [orderCompletedDialogOpen, setOrderCompletedDialogOpen] = useState(false);
     const [completedOrderNumber, setCompletedOrderNumber] = useState<string | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
@@ -357,6 +359,34 @@ export default function PublicCatalogPage() {
             });
         }, (error) => {
             console.error("Error listening to pending orders:", error);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser, userId]);
+
+    // Listen to customer's waiting approval orders (picked status, real-time)
+    useEffect(() => {
+        if (!currentUser || !userId) {
+            setWaitingApprovalOrders([]);
+            return;
+        }
+
+        const ordersRef = collection(db, `users/${userId}/online_orders`);
+        const q = query(
+            ordersRef,
+            where("customerId", "==", currentUser.uid),
+            where("status", "==", "picked"),
+            orderBy("timestamp", "desc")
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const orders: OnlineOrder[] = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as OnlineOrder));
+            setWaitingApprovalOrders(orders);
+        }, (error) => {
+            console.error("Error listening to waiting approval orders:", error);
         });
 
         return () => unsubscribe();
@@ -699,6 +729,12 @@ export default function PublicCatalogPage() {
                                                 <DropdownMenuItem onClick={() => setPendingOrdersDialogOpen(true)} className="text-orange-600">
                                                     <Clock className="mr-2 h-4 w-4" />
                                                     Pending Orders ({pendingOrders.length})
+                                                </DropdownMenuItem>
+                                            )}
+                                            {waitingApprovalOrders.length > 0 && (
+                                                <DropdownMenuItem onClick={() => setWaitingApprovalDialogOpen(true)} className="text-blue-600">
+                                                    <ClipboardCheck className="mr-2 h-4 w-4" />
+                                                    Waiting Approval ({waitingApprovalOrders.length})
                                                 </DropdownMenuItem>
                                             )}
                                             <DropdownMenuItem onClick={() => setOrdersDialogOpen(true)}>
@@ -1164,6 +1200,91 @@ export default function PublicCatalogPage() {
                                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                                                 </span>
                                                 Pending Confirmation
+                                            </div>
+                                        </div>
+
+                                        {/* Order Items */}
+                                        <div className="space-y-2">
+                                            {order.items.map((item, idx) => (
+                                                <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-md">
+                                                    <div className="h-10 w-10 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+                                                        {item.imageUrl ? (
+                                                            <img
+                                                                src={item.imageUrl}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                <ImageOff className="h-4 w-4 text-muted-foreground/40" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-sm truncate">{item.name}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            ${item.price.toFixed(2)} × {item.quantity}
+                                                        </p>
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-purple-600">
+                                                        ${item.total.toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Order Total */}
+                                        <div className="border-t pt-3 flex justify-between items-center">
+                                            <span className="font-medium">Total</span>
+                                            <span className="text-lg font-bold text-purple-600">
+                                                ${order.total.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Waiting Approval Orders Dialog */}
+            <Dialog open={waitingApprovalDialogOpen} onOpenChange={setWaitingApprovalDialogOpen}>
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ClipboardCheck className="h-5 w-5 text-blue-500" />
+                            Waiting Approval
+                        </DialogTitle>
+                        <DialogDescription>
+                            {waitingApprovalOrders.length === 0
+                                ? "No orders waiting for approval"
+                                : `${waitingApprovalOrders.length} order${waitingApprovalOrders.length !== 1 ? 's' : ''} picked and waiting for your approval`
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        {waitingApprovalOrders.length === 0 ? (
+                            <div className="text-center text-muted-foreground py-8">
+                                <ClipboardCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>No orders waiting for approval</p>
+                                <p className="text-sm">Orders picked by the business will appear here</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {waitingApprovalOrders.map((order) => (
+                                    <div key={order.id} className="border rounded-lg p-4 space-y-3">
+                                        {/* Order Header */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-mono text-sm font-semibold">{order.orderNumber}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {new Date(order.timestamp).toLocaleDateString()} at {new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                                <ClipboardCheck className="h-3 w-3" />
+                                                Waiting Approval
                                             </div>
                                         </div>
 
