@@ -123,6 +123,7 @@ export default function PublicCatalogPage() {
     const [completedOrderNumber, setCompletedOrderNumber] = useState<string | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
     const [approvingOrderId, setApprovingOrderId] = useState<string | null>(null);
+    const [approvedOrders, setApprovedOrders] = useState<OnlineOrder[]>([]);
 
     // Check notification permission on mount and when user logs in
     useEffect(() => {
@@ -406,6 +407,34 @@ export default function PublicCatalogPage() {
             });
         }, (error) => {
             console.error("Error listening to waiting approval orders:", error);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser, userId]);
+
+    // Listen to customer's approved orders (for View Orders)
+    useEffect(() => {
+        if (!currentUser || !userId) {
+            setApprovedOrders([]);
+            return;
+        }
+
+        const ordersRef = collection(db, `users/${userId}/online_orders`);
+        const q = query(
+            ordersRef,
+            where("customerId", "==", currentUser.uid),
+            where("status", "==", "approved"),
+            orderBy("timestamp", "desc")
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const orders: OnlineOrder[] = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as OnlineOrder));
+            setApprovedOrders(orders);
+        }, (error) => {
+            console.error("Error listening to approved orders:", error);
         });
 
         return () => unsubscribe();
@@ -1008,19 +1037,78 @@ export default function PublicCatalogPage() {
 
             {/* Orders Dialog */}
             <Dialog open={ordersDialogOpen} onOpenChange={setOrdersDialogOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Your Orders</DialogTitle>
                         <DialogDescription>
-                            View your order history
+                            {approvedOrders.length === 0
+                                ? "View your order history"
+                                : `${approvedOrders.length} approved order${approvedOrders.length !== 1 ? 's' : ''}`
+                            }
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        <div className="text-center text-muted-foreground py-8">
-                            <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>No orders yet</p>
-                            <p className="text-sm">Your order history will appear here</p>
-                        </div>
+                        {approvedOrders.length === 0 ? (
+                            <div className="text-center text-muted-foreground py-8">
+                                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>No orders yet</p>
+                                <p className="text-sm">Your order history will appear here</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {approvedOrders.map((order) => (
+                                    <div key={order.id} className="border rounded-lg p-4 space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-mono text-sm font-medium">{order.orderNumber}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {new Date(order.timestamp).toLocaleDateString()} at {new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                                                Approved
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {order.items.map((item, idx) => (
+                                                <div key={idx} className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                                                        {item.imageUrl ? (
+                                                            <img
+                                                                src={item.imageUrl}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                <ImageOff className="h-4 w-4 text-gray-400" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium truncate">{item.name}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            ${item.price.toFixed(2)} × {item.quantity}
+                                                        </p>
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-purple-600">
+                                                        ${item.total.toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="border-t pt-3 flex justify-between items-center">
+                                            <span className="font-medium">Total</span>
+                                            <span className="text-lg font-bold text-purple-600">
+                                                ${order.total.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
