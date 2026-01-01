@@ -88,6 +88,25 @@ function CatalogPageContent() {
     const [business, setBusiness] = useState<Business | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [debugError, setDebugError] = useState<string | null>(null);
+
+    // Global error handler for debugging
+    useEffect(() => {
+        const handleError = (event: ErrorEvent) => {
+            setDebugError(`Error: ${event.message} at ${event.filename}:${event.lineno}`);
+            console.error("Global error:", event);
+        };
+        const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+            setDebugError(`Unhandled rejection: ${event.reason}`);
+            console.error("Unhandled rejection:", event.reason);
+        };
+        window.addEventListener("error", handleError);
+        window.addEventListener("unhandledrejection", handleUnhandledRejection);
+        return () => {
+            window.removeEventListener("error", handleError);
+            window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+        };
+    }, []);
     const [isIOS, setIsIOS] = useState(false);
     const [isAndroid, setIsAndroid] = useState(false);
     const [catalogDisabled, setCatalogDisabled] = useState(false);
@@ -814,6 +833,13 @@ function CatalogPageContent() {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {/* Debug Error Banner - Remove after debugging */}
+            {debugError && (
+                <div className="bg-red-600 text-white p-3 text-xs font-mono break-all">
+                    {debugError}
+                    <button onClick={() => setDebugError(null)} className="ml-2 underline">Dismiss</button>
+                </div>
+            )}
             {/* Header */}
             <div className="bg-white border-b sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-4 py-4">
