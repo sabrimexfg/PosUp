@@ -48,8 +48,10 @@ export function StripeCheckoutDialog({
     const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
 
     // Fetch the client secret when dialog opens
-    const fetchClientSecret = useCallback(async () => {
-        if (!merchantUserId || !orderId || !amount) return null;
+    const fetchClientSecret = useCallback(async (): Promise<string> => {
+        if (!merchantUserId || !orderId || !amount) {
+            throw new Error("Missing required payment information");
+        }
 
         setLoading(true);
         setError(null);
@@ -78,7 +80,7 @@ export function StripeCheckoutDialog({
             const errorMessage = err.message || "Failed to initialize payment";
             setError(errorMessage);
             onError?.(errorMessage);
-            return null;
+            throw new Error(errorMessage);
         } finally {
             setLoading(false);
         }
