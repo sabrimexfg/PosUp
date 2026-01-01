@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot, updateDoc } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,6 +81,7 @@ interface OnlineOrder {
 
 export default function PublicCatalogPage() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const userId = params.userId as string;
 
     const [items, setItems] = useState<Item[]>([]);
@@ -126,6 +127,33 @@ export default function PublicCatalogPage() {
     const [approvedOrders, setApprovedOrders] = useState<OnlineOrder[]>([]);
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<OnlineOrder | null>(null);
+
+    // Handle payment success from Stripe redirect
+    useEffect(() => {
+        const paymentStatus = searchParams.get("payment_status");
+        const orderId = searchParams.get("order_id");
+
+        if (paymentStatus === "success" && orderId && currentUser) {
+            // Update order status to approved after successful payment
+            const updateOrderStatus = async () => {
+                try {
+                    console.log("Processing payment success for order:", orderId);
+                    const orderRef = doc(db, `users/${userId}/online_orders`, orderId);
+                    await updateDoc(orderRef, {
+                        status: "approved",
+                        paidAt: Date.now()
+                    });
+                    console.log("Order status updated to approved");
+
+                    // Clear the URL params without refreshing the page
+                    window.history.replaceState({}, "", `/catalog/${userId}`);
+                } catch (err: any) {
+                    console.error("Error updating order after payment:", err);
+                }
+            };
+            updateOrderStatus();
+        }
+    }, [searchParams, currentUser, userId]);
 
     // Check notification permission on mount and when user logs in
     useEffect(() => {
