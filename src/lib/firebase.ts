@@ -91,29 +91,68 @@ const initializeMessaging = async (): Promise<Messaging | null> => {
 
 // Request notification permission and get FCM token
 const requestNotificationPermission = async (): Promise<string | null> => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined') {
+        console.log("🚫 FCM: window is undefined (SSR)");
+        return null;
+    }
+
+    // Check if Notification API is available
+    if (!("Notification" in window)) {
+        console.log("🚫 FCM: Notification API not available in this browser");
+        return null;
+    }
+
+    // Check if service workers are supported
+    if (!("serviceWorker" in navigator)) {
+        console.log("🚫 FCM: Service Workers not supported in this browser");
+        return null;
+    }
+
+    console.log("🔔 FCM: Current notification permission:", Notification.permission);
 
     try {
+        // Request permission
+        console.log("🔔 FCM: Requesting notification permission...");
         const permission = await Notification.requestPermission();
+        console.log("🔔 FCM: Permission result:", permission);
+
         if (permission !== 'granted') {
-            console.log("🔕 Notification permission denied");
+            console.log("🔕 Notification permission denied or dismissed");
             return null;
         }
 
         const fcmMessaging = await initializeMessaging();
-        if (!fcmMessaging) return null;
+        if (!fcmMessaging) {
+            console.log("🚫 FCM: Failed to initialize messaging");
+            return null;
+        }
 
         // Register service worker
+        console.log("📝 FCM: Registering service worker...");
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         console.log("📝 Service Worker registered:", registration.scope);
 
+        // Check VAPID key
+        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+        console.log("🔑 FCM: VAPID key present:", !!vapidKey, vapidKey ? `(${vapidKey.substring(0, 20)}...)` : "");
+
+        if (!vapidKey) {
+            console.error("🚫 FCM: VAPID key is missing!");
+            return null;
+        }
+
         // Get FCM token with VAPID key
+        console.log("🔑 FCM: Getting token...");
         const token = await getToken(fcmMessaging, {
-            vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+            vapidKey,
             serviceWorkerRegistration: registration
         });
 
-        console.log("🔑 FCM Token obtained");
+        if (token) {
+            console.log("🔑 FCM Token obtained:", token.substring(0, 20) + "...");
+        } else {
+            console.log("🚫 FCM: getToken returned null/undefined");
+        }
         return token;
     } catch (error) {
         console.error("Error getting FCM token:", error);
