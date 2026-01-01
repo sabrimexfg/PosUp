@@ -556,16 +556,25 @@ export default function PublicCatalogPage() {
     };
 
     const handlePaymentSuccess = async () => {
-        if (!selectedOrderForPayment) return;
+        if (!selectedOrderForPayment) {
+            console.error("No selected order for payment");
+            return;
+        }
+
+        console.log("Payment success, updating order:", selectedOrderForPayment.id);
 
         try {
             const orderRef = doc(db, `users/${userId}/online_orders`, selectedOrderForPayment.id);
             await updateDoc(orderRef, {
-                status: "complete",
+                status: "approved",
                 paidAt: Date.now()
             });
-        } catch (err) {
+            console.log("Order status updated successfully to approved");
+        } catch (err: any) {
             console.error("Error updating order status:", err);
+            console.error("Error code:", err.code);
+            console.error("Error message:", err.message);
+            alert(`Failed to update order status: ${err.message}`);
         } finally {
             setSelectedOrderForPayment(null);
             setCheckoutDialogOpen(false);
