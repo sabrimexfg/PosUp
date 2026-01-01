@@ -561,7 +561,7 @@ export default function PublicCatalogPage() {
         try {
             const orderRef = doc(db, `users/${userId}/online_orders`, selectedOrderForPayment.id);
             await updateDoc(orderRef, {
-                status: "approved",
+                status: "complete",
                 paidAt: Date.now()
             });
         } catch (err) {

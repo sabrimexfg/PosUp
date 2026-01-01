@@ -56,14 +56,19 @@ export function StripeCheckoutDialog({
                         orderNumber: string;
                         amount: number;
                         customerEmail?: string;
+                        returnUrl?: string;
                     }, CheckoutResponse>(functions, "createCustomerOrderCheckout");
+
+                    // Build return URL from current origin
+                    const returnUrl = `${window.location.origin}/catalog/${merchantUserId}?payment_status=success&order_id=${orderId}`;
 
                     const result = await createCheckout({
                         merchantUserId,
                         orderId,
                         orderNumber,
                         amount,
-                        customerEmail
+                        customerEmail,
+                        returnUrl
                     });
 
                     setClientSecret(result.data.clientSecret);
