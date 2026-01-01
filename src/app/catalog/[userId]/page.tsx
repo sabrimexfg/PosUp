@@ -19,6 +19,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { StripeCheckoutDialog } from "@/components/StripeCheckout";
 
 interface Item {
     id: string;
@@ -122,8 +123,9 @@ export default function PublicCatalogPage() {
     const [orderCompletedDialogOpen, setOrderCompletedDialogOpen] = useState(false);
     const [completedOrderNumber, setCompletedOrderNumber] = useState<string | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
-    const [approvingOrderId, setApprovingOrderId] = useState<string | null>(null);
     const [approvedOrders, setApprovedOrders] = useState<OnlineOrder[]>([]);
+    const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+    const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<OnlineOrder | null>(null);
 
     // Check notification permission on mount and when user logs in
     useEffect(() => {
@@ -548,18 +550,30 @@ export default function PublicCatalogPage() {
         }
     };
 
-    const handleApproveOrder = async (orderId: string) => {
-        setApprovingOrderId(orderId);
+    const handleApproveOrder = (order: OnlineOrder) => {
+        setSelectedOrderForPayment(order);
+        setCheckoutDialogOpen(true);
+    };
+
+    const handlePaymentSuccess = async () => {
+        if (!selectedOrderForPayment) return;
+
         try {
-            const orderRef = doc(db, `users/${userId}/online_orders`, orderId);
+            const orderRef = doc(db, `users/${userId}/online_orders`, selectedOrderForPayment.id);
             await updateDoc(orderRef, {
-                status: "approved"
+                status: "approved",
+                paidAt: Date.now()
             });
         } catch (err) {
-            console.error("Error approving order:", err);
+            console.error("Error updating order status:", err);
         } finally {
-            setApprovingOrderId(null);
+            setSelectedOrderForPayment(null);
+            setCheckoutDialogOpen(false);
         }
+    };
+
+    const handlePaymentError = (error: string) => {
+        console.error("Payment error:", error);
     };
 
     const handleGoogleSignIn = async () => {
@@ -1449,12 +1463,8 @@ export default function PublicCatalogPage() {
                                             </div>
                                             <Button
                                                 size="sm"
-                                                onClick={() => handleApproveOrder(order.id)}
-                                                disabled={approvingOrderId === order.id}
+                                                onClick={() => handleApproveOrder(order)}
                                             >
-                                                {approvingOrderId === order.id ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                                ) : null}
                                                 Approve & Pay
                                             </Button>
                                         </div>
@@ -1491,6 +1501,21 @@ export default function PublicCatalogPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Stripe Checkout Dialog */}
+            {selectedOrderForPayment && (
+                <StripeCheckoutDialog
+                    open={checkoutDialogOpen}
+                    onOpenChange={setCheckoutDialogOpen}
+                    merchantUserId={userId}
+                    orderId={selectedOrderForPayment.id}
+                    orderNumber={selectedOrderForPayment.orderNumber}
+                    amount={selectedOrderForPayment.total}
+                    customerEmail={currentUser?.email || undefined}
+                    onSuccess={handlePaymentSuccess}
+                    onError={handlePaymentError}
+                />
+            )}
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import {
     Firestore,
     getFirestore,
@@ -59,7 +60,13 @@ provider.setCustomParameters({
     prompt: 'select_account'
 });
 
+// Initialize Firebase Functions
+const functions = getFunctions(app);
+
 export {
+    app,
+    functions,
+    httpsCallable,
     auth,
     db,
     provider,
