@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { getMessaging, getToken, onMessage, isSupported, Messaging } from "firebase/messaging";
 import {
     Firestore,
     getFirestore,
@@ -63,6 +64,79 @@ provider.setCustomParameters({
 // Initialize Firebase Functions
 const functions = getFunctions(app);
 
+// Firebase Cloud Messaging (FCM) - initialized lazily on client side only
+let messaging: Messaging | null = null;
+
+// Initialize FCM only in browser environment
+const initializeMessaging = async (): Promise<Messaging | null> => {
+    if (typeof window === 'undefined') return null;
+
+    try {
+        const supported = await isSupported();
+        if (!supported) {
+            console.log("📵 FCM not supported in this browser");
+            return null;
+        }
+
+        if (!messaging) {
+            messaging = getMessaging(app);
+            console.log("📱 FCM initialized");
+        }
+        return messaging;
+    } catch (error) {
+        console.error("Error initializing FCM:", error);
+        return null;
+    }
+};
+
+// Request notification permission and get FCM token
+const requestNotificationPermission = async (): Promise<string | null> => {
+    if (typeof window === 'undefined') return null;
+
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.log("🔕 Notification permission denied");
+            return null;
+        }
+
+        const fcmMessaging = await initializeMessaging();
+        if (!fcmMessaging) return null;
+
+        // Register service worker
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        console.log("📝 Service Worker registered:", registration.scope);
+
+        // Get FCM token with VAPID key
+        const token = await getToken(fcmMessaging, {
+            vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+            serviceWorkerRegistration: registration
+        });
+
+        console.log("🔑 FCM Token obtained");
+        return token;
+    } catch (error) {
+        console.error("Error getting FCM token:", error);
+        return null;
+    }
+};
+
+// Listen for foreground messages
+const onForegroundMessage = (callback: (payload: any) => void) => {
+    if (typeof window === 'undefined') return () => {};
+
+    initializeMessaging().then((fcmMessaging) => {
+        if (fcmMessaging) {
+            onMessage(fcmMessaging, (payload) => {
+                console.log("📬 Foreground message received:", payload);
+                callback(payload);
+            });
+        }
+    });
+
+    return () => {}; // Return cleanup function
+};
+
 export {
     app,
     functions,
@@ -89,6 +163,8 @@ export {
     orderBy,
     limit,
     startAfter,
-    onSnapshot
+    onSnapshot,
+    requestNotificationPermission,
+    onForegroundMessage
 };
 export type { User, DocumentSnapshot };

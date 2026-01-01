@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot, updateDoc } from "@/lib/firebase";
+import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot, updateDoc, requestNotificationPermission, onForegroundMessage } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,25 +88,6 @@ function CatalogPageContent() {
     const [business, setBusiness] = useState<Business | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [debugError, setDebugError] = useState<string | null>(null);
-
-    // Global error handler for debugging
-    useEffect(() => {
-        const handleError = (event: ErrorEvent) => {
-            setDebugError(`Error: ${event.message} at ${event.filename}:${event.lineno}`);
-            console.error("Global error:", event);
-        };
-        const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-            setDebugError(`Unhandled rejection: ${event.reason}`);
-            console.error("Unhandled rejection:", event.reason);
-        };
-        window.addEventListener("error", handleError);
-        window.addEventListener("unhandledrejection", handleUnhandledRejection);
-        return () => {
-            window.removeEventListener("error", handleError);
-            window.removeEventListener("unhandledrejection", handleUnhandledRejection);
-        };
-    }, []);
     const [isIOS, setIsIOS] = useState(false);
     const [isAndroid, setIsAndroid] = useState(false);
     const [catalogDisabled, setCatalogDisabled] = useState(false);
@@ -181,17 +162,56 @@ function CatalogPageContent() {
         }
     }, [currentUser]);
 
-    // Request notification permission when user has pending orders
+    // Request notification permission and register FCM token when user logs in
     useEffect(() => {
-        if (currentUser && pendingOrders.length > 0 && notificationPermission === "default") {
-            // Request permission when user has pending orders
-            if ("Notification" in window) {
-                Notification.requestPermission().then(permission => {
-                    setNotificationPermission(permission);
-                });
+        if (!currentUser || !userId) return;
+
+        const registerFCMToken = async () => {
+            try {
+                // Request permission and get FCM token
+                const token = await requestNotificationPermission();
+
+                if (token) {
+                    // Save FCM token to Firestore for this customer on this merchant's store
+                    const tokenRef = doc(db, `users/${userId}/customer_fcm_tokens`, currentUser.uid);
+                    await setDoc(tokenRef, {
+                        token,
+                        customerId: currentUser.uid,
+                        customerEmail: currentUser.email,
+                        updatedAt: Date.now(),
+                        platform: 'web'
+                    }, { merge: true });
+                    console.log("📱 FCM token registered for push notifications");
+                    setNotificationPermission("granted");
+                }
+            } catch (err) {
+                console.error("Error registering FCM token:", err);
             }
+        };
+
+        // Only request if permission hasn't been granted yet
+        if (notificationPermission !== "granted") {
+            registerFCMToken();
         }
-    }, [currentUser, pendingOrders.length, notificationPermission]);
+    }, [currentUser, userId, notificationPermission]);
+
+    // Listen for foreground push notifications
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const unsubscribe = onForegroundMessage((payload) => {
+            // Show browser notification when app is in foreground
+            if (payload.notification) {
+                sendBrowserNotification(
+                    payload.notification.title || "Order Update",
+                    payload.notification.body || "You have a new notification",
+                    payload.data?.orderNumber || "notification"
+                );
+            }
+        });
+
+        return unsubscribe;
+    }, [currentUser]);
 
     // Helper function to send browser notification
     const sendBrowserNotification = (title: string, body: string, orderNumber: string) => {
@@ -833,13 +853,6 @@ function CatalogPageContent() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Debug Error Banner - Remove after debugging */}
-            {debugError && (
-                <div className="bg-red-600 text-white p-3 text-xs font-mono break-all">
-                    {debugError}
-                    <button onClick={() => setDebugError(null)} className="ml-2 underline">Dismiss</button>
-                </div>
-            )}
             {/* Header */}
             <div className="bg-white border-b sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-4 py-4">
