@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
     EmbeddedCheckoutProvider,
     EmbeddedCheckout
 } from "@stripe/react-stripe-js";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { functions, httpsCallable } from "@/lib/firebase";
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
 
 // Initialize Stripe with the publishable key
-// For connected accounts, we need to get this dynamically
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface StripeCheckoutProps {
@@ -42,79 +41,80 @@ export function StripeCheckoutDialog({
     onSuccess,
     onError
 }: StripeCheckoutProps) {
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [clientSecret, setClientSecret] = useState<string | null>(null);
-    const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
+    const [isReady, setIsReady] = useState(false);
 
-    // Fetch the client secret when dialog opens
-    const fetchClientSecret = useCallback(async (): Promise<string> => {
-        if (!merchantUserId || !orderId || !amount) {
-            throw new Error("Missing required payment information");
+    // Fetch client secret when dialog opens
+    useEffect(() => {
+        if (open && !clientSecret && !error) {
+            const fetchSecret = async () => {
+                try {
+                    const createCheckout = httpsCallable<{
+                        merchantUserId: string;
+                        orderId: string;
+                        orderNumber: string;
+                        amount: number;
+                        customerEmail?: string;
+                    }, CheckoutResponse>(functions, "createCustomerOrderCheckout");
+
+                    const result = await createCheckout({
+                        merchantUserId,
+                        orderId,
+                        orderNumber,
+                        amount,
+                        customerEmail
+                    });
+
+                    setClientSecret(result.data.clientSecret);
+                    setIsReady(true);
+                } catch (err: any) {
+                    console.error("Error creating checkout session:", err);
+                    const errorMessage = err.message || "Failed to initialize payment";
+                    setError(errorMessage);
+                    onError?.(errorMessage);
+                }
+            };
+            fetchSecret();
         }
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            const createCheckout = httpsCallable<{
-                merchantUserId: string;
-                orderId: string;
-                orderNumber: string;
-                amount: number;
-                customerEmail?: string;
-            }, CheckoutResponse>(functions, "createCustomerOrderCheckout");
-
-            const result = await createCheckout({
-                merchantUserId,
-                orderId,
-                orderNumber,
-                amount,
-                customerEmail
-            });
-
-            setClientSecret(result.data.clientSecret);
-            return result.data.clientSecret;
-        } catch (err: any) {
-            console.error("Error creating checkout session:", err);
-            const errorMessage = err.message || "Failed to initialize payment";
-            setError(errorMessage);
-            onError?.(errorMessage);
-            throw new Error(errorMessage);
-        } finally {
-            setLoading(false);
-        }
-    }, [merchantUserId, orderId, orderNumber, amount, customerEmail, onError]);
-
-    // Get connected account ID from merchant
-    const getConnectedAccountId = useCallback(async () => {
-        // We need to fetch the merchant's Stripe account ID
-        // This is done in the Firebase function, but for the Stripe.js we need it client-side
-        // For now, we'll use the platform's publishable key
-        // The checkout session is created on the connected account, so payments go there
-        return null;
-    }, []);
+    }, [open, clientSecret, error, merchantUserId, orderId, orderNumber, amount, customerEmail, onError]);
 
     const handleComplete = useCallback(() => {
         onSuccess?.();
         onOpenChange(false);
-        setClientSecret(null);
+        // Reset state after closing
+        setTimeout(() => {
+            setClientSecret(null);
+            setIsReady(false);
+            setError(null);
+        }, 300);
     }, [onSuccess, onOpenChange]);
 
     // Reset state when dialog closes
     const handleOpenChange = (isOpen: boolean) => {
-        if (!isOpen) {
-            setClientSecret(null);
-            setError(null);
-        }
         onOpenChange(isOpen);
+        if (!isOpen) {
+            // Delay reset to allow dialog animation to complete
+            setTimeout(() => {
+                setClientSecret(null);
+                setIsReady(false);
+                setError(null);
+            }, 300);
+        }
     };
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-0">
-                <div className="p-6">
-                    {loading && !clientSecret && (
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <CreditCard className="h-5 w-5" />
+                        Complete Payment
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="py-4">
+                    {!isReady && !error && (
                         <div className="flex flex-col items-center justify-center py-12">
                             <Loader2 className="h-8 w-8 animate-spin text-purple-600 mb-4" />
                             <p className="text-muted-foreground">Preparing secure checkout...</p>
@@ -130,11 +130,11 @@ export function StripeCheckoutDialog({
                         </div>
                     )}
 
-                    {!loading && !error && open && (
+                    {isReady && clientSecret && (
                         <EmbeddedCheckoutProvider
                             stripe={stripePromise}
                             options={{
-                                fetchClientSecret,
+                                clientSecret,
                                 onComplete: handleComplete
                             }}
                         >
