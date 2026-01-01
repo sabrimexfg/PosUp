@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot, updateDoc } from "@/lib/firebase";
 import { User } from "firebase/auth";
@@ -79,7 +79,7 @@ interface OnlineOrder {
     createdAt: number;
 }
 
-export default function PublicCatalogPage() {
+function CatalogPageContent() {
     const params = useParams();
     const searchParams = useSearchParams();
     const userId = params.userId as string;
@@ -1564,5 +1564,21 @@ export default function PublicCatalogPage() {
                 />
             )}
         </div>
+    );
+}
+
+// Wrap with Suspense to handle useSearchParams on client-side navigation
+export default function PublicCatalogPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading catalog...</p>
+                </div>
+            </div>
+        }>
+            <CatalogPageContent />
+        </Suspense>
     );
 }
