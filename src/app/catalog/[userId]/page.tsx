@@ -176,21 +176,26 @@ function CatalogPageContent() {
 
     // Helper function to send browser notification
     const sendBrowserNotification = (title: string, body: string, orderNumber: string) => {
-        if (typeof window === "undefined" || !("Notification" in window)) return;
+        try {
+            if (typeof window === "undefined" || !("Notification" in window)) return;
 
-        if (Notification.permission === "granted") {
-            const notification = new Notification(title, {
-                body: body,
-                icon: "/favicon.ico",
-                tag: `order-${orderNumber}`, // Prevents duplicate notifications
-                requireInteraction: true, // Keep notification until user interacts
-            });
+            if (Notification.permission === "granted") {
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: "/favicon.ico",
+                    tag: `order-${orderNumber}`, // Prevents duplicate notifications
+                    requireInteraction: true, // Keep notification until user interacts
+                });
 
-            // Focus the window when notification is clicked
-            notification.onclick = () => {
-                window.focus();
-                notification.close();
-            };
+                // Focus the window when notification is clicked
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+            }
+        } catch (err) {
+            // Some browsers (especially mobile) may throw when creating notifications
+            console.error("Failed to send browser notification:", err);
         }
     };
 
@@ -412,29 +417,33 @@ function CatalogPageContent() {
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const orders: OnlineOrder[] = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as OnlineOrder));
+            try {
+                const orders: OnlineOrder[] = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                } as OnlineOrder));
 
-            // Check for new awaiting approval orders (orders that weren't in the previous list)
-            setWaitingApprovalOrders(prevOrders => {
-                const prevIds = new Set(prevOrders.map(o => o.id));
+                // Check for new awaiting approval orders (orders that weren't in the previous list)
+                setWaitingApprovalOrders(prevOrders => {
+                    const prevIds = new Set(prevOrders.map(o => o.id));
 
-                // Find orders that are new (not in previous list)
-                orders.forEach(order => {
-                    if (!prevIds.has(order.id) && prevOrders.length > 0) {
-                        // This is a new awaiting approval order - notify the customer
-                        sendBrowserNotification(
-                            "Order Ready for Approval!",
-                            `Your order ${order.orderNumber} has been picked and is waiting for your approval.`,
-                            order.orderNumber
-                        );
-                    }
+                    // Find orders that are new (not in previous list)
+                    orders.forEach(order => {
+                        if (!prevIds.has(order.id) && prevOrders.length > 0) {
+                            // This is a new awaiting approval order - notify the customer
+                            sendBrowserNotification(
+                                "Order Ready for Approval!",
+                                `Your order ${order.orderNumber} has been picked and is waiting for your approval.`,
+                                order.orderNumber
+                            );
+                        }
+                    });
+
+                    return orders;
                 });
-
-                return orders;
-            });
+            } catch (err) {
+                console.error("Error processing waiting approval orders:", err);
+            }
         }, (error) => {
             console.error("Error listening to waiting approval orders:", error);
         });
