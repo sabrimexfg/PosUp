@@ -123,7 +123,6 @@ function CatalogPageContent() {
     const [waitingApprovalDialogOpen, setWaitingApprovalDialogOpen] = useState(false);
     const [orderCompletedDialogOpen, setOrderCompletedDialogOpen] = useState(false);
     const [completedOrderNumber, setCompletedOrderNumber] = useState<string | null>(null);
-    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
     const [approvedOrders, setApprovedOrders] = useState<OnlineOrder[]>([]);
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<OnlineOrder | null>(null);
@@ -155,13 +154,6 @@ function CatalogPageContent() {
         }
     }, [searchParams, currentUser, userId]);
 
-    // Check notification permission on mount and when user logs in
-    useEffect(() => {
-        if (typeof window !== "undefined" && "Notification" in window) {
-            setNotificationPermission(Notification.permission);
-        }
-    }, [currentUser]);
-
     // Request notification permission and register FCM token when user logs in
     useEffect(() => {
         if (!currentUser || !userId) return;
@@ -182,18 +174,18 @@ function CatalogPageContent() {
                         platform: 'web'
                     }, { merge: true });
                     console.log("📱 FCM token registered for push notifications");
-                    setNotificationPermission("granted");
+                } else {
+                    console.log("📵 No FCM token obtained - permission may have been denied or FCM not supported");
                 }
             } catch (err) {
                 console.error("Error registering FCM token:", err);
             }
         };
 
-        // Only request if permission hasn't been granted yet
-        if (notificationPermission !== "granted") {
-            registerFCMToken();
-        }
-    }, [currentUser, userId, notificationPermission]);
+        // Always try to register FCM token when user logs in
+        // (will request permission if not granted, or just get token if already granted)
+        registerFCMToken();
+    }, [currentUser, userId]);
 
     // Listen for foreground push notifications
     useEffect(() => {
