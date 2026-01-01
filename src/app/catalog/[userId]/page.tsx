@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot } from "@/lib/firebase";
+import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot, updateDoc } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -122,6 +122,7 @@ export default function PublicCatalogPage() {
     const [orderCompletedDialogOpen, setOrderCompletedDialogOpen] = useState(false);
     const [completedOrderNumber, setCompletedOrderNumber] = useState<string | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+    const [approvingOrderId, setApprovingOrderId] = useState<string | null>(null);
 
     // Check notification permission on mount and when user logs in
     useEffect(() => {
@@ -515,6 +516,20 @@ export default function PublicCatalogPage() {
             console.error("Error placing order:", err);
         } finally {
             setPlacingOrder(false);
+        }
+    };
+
+    const handleApproveOrder = async (orderId: string) => {
+        setApprovingOrderId(orderId);
+        try {
+            const orderRef = doc(db, `users/${userId}/online_orders`, orderId);
+            await updateDoc(orderRef, {
+                status: "approved"
+            });
+        } catch (err) {
+            console.error("Error approving order:", err);
+        } finally {
+            setApprovingOrderId(null);
         }
     };
 
@@ -1338,10 +1353,22 @@ export default function PublicCatalogPage() {
 
                                         {/* Order Total */}
                                         <div className="border-t pt-3 flex justify-between items-center">
-                                            <span className="font-medium">Total</span>
-                                            <span className="text-lg font-bold text-purple-600">
-                                                ${order.total.toFixed(2)}
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-medium">Total</span>
+                                                <span className="text-lg font-bold text-purple-600">
+                                                    ${order.total.toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                onClick={() => handleApproveOrder(order.id)}
+                                                disabled={approvingOrderId === order.id}
+                                            >
+                                                {approvingOrderId === order.id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                                ) : null}
+                                                Approve & Pay
+                                            </Button>
                                         </div>
                                     </div>
                                 ))}
