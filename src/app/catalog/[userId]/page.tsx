@@ -580,6 +580,7 @@ export default function PublicCatalogPage() {
 
     const handleApproveOrder = (order: OnlineOrder) => {
         setSelectedOrderForPayment(order);
+        setWaitingApprovalDialogOpen(false); // Close the waiting approval dialog
         setCheckoutDialogOpen(true);
     };
 
@@ -603,9 +604,18 @@ export default function PublicCatalogPage() {
             console.error("Error code:", err.code);
             console.error("Error message:", err.message);
             alert(`Failed to update order status: ${err.message}`);
-        } finally {
-            setSelectedOrderForPayment(null);
-            setCheckoutDialogOpen(false);
+        }
+        // Don't close the dialog here - let the user see the success screen and click "Done"
+    };
+
+    // Called when the checkout dialog is closed (either by user clicking Done or closing)
+    const handleCheckoutDialogClose = (open: boolean) => {
+        setCheckoutDialogOpen(open);
+        if (!open) {
+            // Clean up when dialog closes
+            setTimeout(() => {
+                setSelectedOrderForPayment(null);
+            }, 300);
         }
     };
 
@@ -1543,7 +1553,7 @@ export default function PublicCatalogPage() {
             {selectedOrderForPayment && (
                 <StripeCheckoutDialog
                     open={checkoutDialogOpen}
-                    onOpenChange={setCheckoutDialogOpen}
+                    onOpenChange={handleCheckoutDialogClose}
                     merchantUserId={userId}
                     orderId={selectedOrderForPayment.id}
                     orderNumber={selectedOrderForPayment.orderNumber}
