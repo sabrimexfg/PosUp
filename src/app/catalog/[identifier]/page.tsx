@@ -1642,7 +1642,7 @@ function CatalogPageContent() {
             </Dialog>
 
             {/* Stripe Checkout Dialog */}
-            {selectedOrderForPayment && (
+            {selectedOrderForPayment && userId && (
                 <StripeCheckoutDialog
                     open={checkoutDialogOpen}
                     onOpenChange={handleCheckoutDialogClose}
