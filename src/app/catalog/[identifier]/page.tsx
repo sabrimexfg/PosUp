@@ -107,16 +107,7 @@ function CatalogPageContent() {
             }
 
             try {
-                // First, check if it's a direct userId by trying to fetch the user doc
-                const userDoc = await getDoc(doc(db, `users/${identifier}`));
-                if (userDoc.exists()) {
-                    // It's a direct userId
-                    setUserId(identifier);
-                    setResolving(false);
-                    return;
-                }
-
-                // Not a direct userId, try looking up as a slug
+                // First, try looking up as a slug (publicly readable)
                 const slugDoc = await getDoc(doc(db, `business_slugs/${identifier}`));
                 if (slugDoc.exists()) {
                     const resolvedUserId = slugDoc.data()?.userId;
@@ -127,7 +118,18 @@ function CatalogPageContent() {
                     }
                 }
 
-                // Neither a valid userId nor a slug
+                // Not a slug, check if it's a direct userId
+                // This requires the user doc to exist and be accessible
+                // We check public_profile instead since users collection isn't publicly readable
+                const publicProfileDoc = await getDoc(doc(db, `users/${identifier}/public_profile/info`));
+                if (publicProfileDoc.exists()) {
+                    // It's a valid userId with a public profile
+                    setUserId(identifier);
+                    setResolving(false);
+                    return;
+                }
+
+                // Neither a valid slug nor a userId with public profile
                 setError("Business not found");
                 setResolving(false);
             } catch (err) {
