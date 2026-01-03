@@ -51,7 +51,10 @@ self.addEventListener('notificationclick', (event) => {
     let url = '/';
 
     // Navigate to the appropriate page based on notification data
-    if (data?.merchantUserId) {
+    // Prefer slug for cleaner URLs, fall back to merchantUserId
+    if (data?.businessSlug) {
+        url = `/catalog/${data.businessSlug}`;
+    } else if (data?.merchantUserId) {
         url = `/catalog/${data.merchantUserId}`;
     }
 
