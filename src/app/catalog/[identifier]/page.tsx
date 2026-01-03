@@ -82,7 +82,11 @@ interface OnlineOrder {
 function CatalogPageContent() {
     const params = useParams();
     const searchParams = useSearchParams();
-    const userId = params.userId as string;
+    const identifier = params.identifier as string; // Can be userId or slug
+
+    // Resolved userId (from identifier lookup)
+    const [userId, setUserId] = useState<string | null>(null);
+    const [resolving, setResolving] = useState(true);
 
     const [items, setItems] = useState<Item[]>([]);
     const [business, setBusiness] = useState<Business | null>(null);
@@ -92,6 +96,49 @@ function CatalogPageContent() {
     const [isAndroid, setIsAndroid] = useState(false);
     const [catalogDisabled, setCatalogDisabled] = useState(false);
     const [cart, setCart] = useState<CartItem[]>([]);
+
+    // Resolve identifier to userId (supports both slugs and direct userIds)
+    useEffect(() => {
+        const resolveIdentifier = async () => {
+            if (!identifier) {
+                setError("Invalid catalog URL");
+                setResolving(false);
+                return;
+            }
+
+            try {
+                // First, check if it's a direct userId by trying to fetch the user doc
+                const userDoc = await getDoc(doc(db, `users/${identifier}`));
+                if (userDoc.exists()) {
+                    // It's a direct userId
+                    setUserId(identifier);
+                    setResolving(false);
+                    return;
+                }
+
+                // Not a direct userId, try looking up as a slug
+                const slugDoc = await getDoc(doc(db, `business_slugs/${identifier}`));
+                if (slugDoc.exists()) {
+                    const resolvedUserId = slugDoc.data()?.userId;
+                    if (resolvedUserId) {
+                        setUserId(resolvedUserId);
+                        setResolving(false);
+                        return;
+                    }
+                }
+
+                // Neither a valid userId nor a slug
+                setError("Business not found");
+                setResolving(false);
+            } catch (err) {
+                console.error("Error resolving identifier:", err);
+                setError("Failed to load business");
+                setResolving(false);
+            }
+        };
+
+        resolveIdentifier();
+    }, [identifier]);
 
     // Auth and customer registration state
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -145,7 +192,7 @@ function CatalogPageContent() {
                     console.log("Order status updated to approved");
 
                     // Clear the URL params without refreshing the page
-                    window.history.replaceState({}, "", `/catalog/${userId}`);
+                    window.history.replaceState({}, "", `/catalog/${identifier}`);
                 } catch (err: any) {
                     console.error("Error updating order after payment:", err);
                 }
@@ -164,8 +211,12 @@ function CatalogPageContent() {
                 const token = await requestNotificationPermission();
 
                 if (token) {
-                    // Save FCM token to Firestore for this customer on this merchant's store
-                    const tokenRef = doc(db, `users/${userId}/customer_fcm_tokens`, currentUser.uid);
+                    // Create a hash of the token to use as document ID (tokens are too long for doc IDs)
+                    const tokenHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+                    const tokenId = Array.from(new Uint8Array(tokenHash)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+
+                    // Save FCM token with tokenId as document ID (supports multiple devices per customer)
+                    const tokenRef = doc(db, `users/${userId}/customer_fcm_tokens`, tokenId);
                     await setDoc(tokenRef, {
                         token,
                         customerId: currentUser.uid,
@@ -173,7 +224,7 @@ function CatalogPageContent() {
                         updatedAt: Date.now(),
                         platform: 'web'
                     }, { merge: true });
-                    console.log("📱 FCM token registered for push notifications");
+                    console.log("📱 FCM token registered for push notifications (tokenId:", tokenId + ")");
                 } else {
                     console.log("📵 No FCM token obtained - permission may have been denied or FCM not supported");
                 }
@@ -778,7 +829,8 @@ function CatalogPageContent() {
         setAddressFormOpen(true);
     };
 
-    if (loading) {
+    // Show loading while resolving slug/userId or loading catalog data
+    if (resolving || loading) {
         return (
             <div className="min-h-screen bg-gray-50 p-6">
                 <div className="max-w-6xl mx-auto space-y-6">
