@@ -322,8 +322,17 @@ function CatalogPageContent() {
             setIsReturningUser(true);
         }
 
+        // Wait for identifier resolution to complete before checking userId
+        if (resolving) {
+            return;
+        }
+
         if (!userId) {
-            setError("Invalid catalog link");
+            // Only set error if resolving is done and userId is still null
+            // (the resolveIdentifier effect will have already set an appropriate error)
+            if (!error) {
+                setError("Invalid catalog link");
+            }
             setLoading(false);
             return;
         }
@@ -399,7 +408,7 @@ function CatalogPageContent() {
         }
 
         fetchCatalog();
-    }, [userId]);
+    }, [userId, resolving, error]);
 
     // Listen to auth state
     useEffect(() => {
