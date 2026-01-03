@@ -127,10 +127,39 @@ const requestNotificationPermission = async (): Promise<string | null> => {
             return null;
         }
 
-        // Register service worker
+        // Register service worker and wait for it to be ready
         console.log("📝 FCM: Registering service worker...");
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         console.log("📝 Service Worker registered:", registration.scope);
+
+        // Wait for service worker to be active before getting token
+        if (registration.installing) {
+            console.log("📝 FCM: Service Worker installing, waiting for activation...");
+            await new Promise<void>((resolve) => {
+                registration.installing!.addEventListener('statechange', function() {
+                    if (this.state === 'activated') {
+                        console.log("📝 FCM: Service Worker activated");
+                        resolve();
+                    }
+                });
+            });
+        } else if (registration.waiting) {
+            console.log("📝 FCM: Service Worker waiting...");
+            await new Promise<void>((resolve) => {
+                registration.waiting!.addEventListener('statechange', function() {
+                    if (this.state === 'activated') {
+                        console.log("📝 FCM: Service Worker activated");
+                        resolve();
+                    }
+                });
+            });
+        } else if (registration.active) {
+            console.log("📝 FCM: Service Worker already active");
+        }
+
+        // Ensure service worker is ready
+        await navigator.serviceWorker.ready;
+        console.log("📝 FCM: Service Worker ready");
 
         // Check VAPID key
         const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
