@@ -25,8 +25,22 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // Handle background messages
-messaging.onBackgroundMessage((payload) => {
+messaging.onBackgroundMessage(async (payload) => {
     console.log('[firebase-messaging-sw.js] Received background message:', payload);
+
+    // Check if there's a visible client (page is open and focused)
+    // If so, let the foreground handler deal with the notification
+    const windowClients = await clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true
+    });
+
+    const hasVisibleClient = windowClients.some(client => client.visibilityState === 'visible');
+
+    if (hasVisibleClient) {
+        console.log('[firebase-messaging-sw.js] Page is visible, skipping background notification');
+        return;
+    }
 
     const notificationTitle = payload.notification?.title || 'PosUp Notification';
     const notificationOptions = {
