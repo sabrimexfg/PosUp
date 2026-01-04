@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot, updateDoc, requestNotificationPermission, onForegroundMessage } from "@/lib/firebase";
 import { User } from "firebase/auth";
@@ -203,18 +203,51 @@ function CatalogPageContent() {
         }
     }, [searchParams, currentUser, userId]);
 
+    // Track if we've handled the approve action to prevent duplicate opens
+    const approveActionHandled = useRef(false);
+    // Store the pending action if user isn't logged in yet
+    const pendingApproveAction = useRef(false);
+
     // Handle notification click action to open approval dialog
     useEffect(() => {
         const action = searchParams.get("action");
 
-        if (action === "approve" && currentUser && waitingApprovalOrders.length > 0) {
-            // Open the waiting approval dialog
-            setWaitingApprovalDialogOpen(true);
+        if (action === "approve") {
+            console.log("[Catalog] Approve action detected, currentUser:", !!currentUser, "orders:", waitingApprovalOrders.length);
 
-            // Clear the URL params without refreshing the page
-            window.history.replaceState({}, "", `/catalog/${identifier}`);
+            if (!currentUser) {
+                // User not logged in yet, store the action for later
+                pendingApproveAction.current = true;
+                console.log("[Catalog] User not logged in, storing approve action for later");
+                return;
+            }
+
+            if (!approveActionHandled.current) {
+                // If we have orders waiting for approval, open the dialog
+                if (waitingApprovalOrders.length > 0) {
+                    console.log("[Catalog] Opening approval dialog from notification");
+                    approveActionHandled.current = true;
+                    pendingApproveAction.current = false;
+                    setWaitingApprovalDialogOpen(true);
+                    // Clear the URL params without refreshing the page
+                    window.history.replaceState({}, "", `/catalog/${identifier}`);
+                } else {
+                    // Orders might still be loading, keep waiting
+                    console.log("[Catalog] Waiting for approval orders to load...");
+                }
+            }
         }
     }, [searchParams, currentUser, waitingApprovalOrders, identifier]);
+
+    // Handle pending approve action after user logs in
+    useEffect(() => {
+        if (currentUser && pendingApproveAction.current && waitingApprovalOrders.length > 0 && !approveActionHandled.current) {
+            console.log("[Catalog] Handling pending approve action after login");
+            approveActionHandled.current = true;
+            pendingApproveAction.current = false;
+            setWaitingApprovalDialogOpen(true);
+        }
+    }, [currentUser, waitingApprovalOrders]);
 
     // Request notification permission and register FCM token when user logs in
     useEffect(() => {
@@ -258,13 +291,24 @@ function CatalogPageContent() {
         if (!currentUser) return;
 
         const unsubscribe = onForegroundMessage((payload) => {
-            // Show browser notification when app is in foreground
-            if (payload.notification) {
-                sendBrowserNotification(
-                    payload.notification.title || "Order Update",
-                    payload.notification.body || "You have a new notification",
-                    payload.data?.orderNumber || "notification"
-                );
+            console.log("[Catalog] Foreground message received:", payload);
+
+            // Get title/body from data (data-only messages) or notification
+            const title = payload.data?.title || payload.notification?.title || "Order Update";
+            const body = payload.data?.body || payload.notification?.body || "You have a new notification";
+            const orderNumber = payload.data?.orderNumber || "notification";
+            const notificationType = payload.data?.type;
+
+            // Show browser notification
+            sendBrowserNotification(title, body, orderNumber);
+
+            // If this is an awaiting approval notification, open the dialog
+            if (notificationType === "order_awaiting_approval") {
+                console.log("[Catalog] Opening approval dialog from foreground notification");
+                // Small delay to allow the order data to sync from Firestore
+                setTimeout(() => {
+                    setWaitingApprovalDialogOpen(true);
+                }, 1000);
             }
         });
 
