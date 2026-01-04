@@ -431,122 +431,11 @@ function CatalogPageContent() {
         return () => unsubscribe();
     }, [userId]);
 
-    // Listen to customer's pending orders (real-time)
+    // Single consolidated listener for all customer orders (reduces Firestore reads from 3 to 1)
     useEffect(() => {
         if (!currentUser || !userId) {
             setPendingOrders([]);
-            return;
-        }
-
-        const ordersRef = collection(db, `users/${userId}/online_orders`);
-        const q = query(
-            ordersRef,
-            where("customerId", "==", currentUser.uid),
-            where("status", "==", "pending"),
-            orderBy("timestamp", "desc")
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const orders: OnlineOrder[] = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as OnlineOrder));
-
-            // Check for completed orders (orders that were pending but are now gone)
-            // We need to track previous pending orders to detect completions
-            setPendingOrders(prevOrders => {
-                const currentIds = new Set(orders.map(o => o.id));
-
-                // Find orders that were in the previous list but not in the current list
-                // These have either been completed or cancelled
-                prevOrders.forEach(prevOrder => {
-                    if (!currentIds.has(prevOrder.id)) {
-                        // This order is no longer pending - check if it was completed
-                        // We'll fetch it to check the status
-                        getDoc(doc(db, `users/${userId}/online_orders/${prevOrder.id}`))
-                            .then(docSnap => {
-                                if (docSnap.exists()) {
-                                    const data = docSnap.data();
-                                    if (data.status === "completed") {
-                                        // Show in-app completion dialog
-                                        setCompletedOrderNumber(prevOrder.orderNumber);
-                                        setOrderCompletedDialogOpen(true);
-
-                                        // Send browser push notification
-                                        sendBrowserNotification(
-                                            "🎉 Order Ready!",
-                                            `Your order ${prevOrder.orderNumber} has been completed and is ready!`,
-                                            prevOrder.orderNumber
-                                        );
-                                    }
-                                }
-                            })
-                            .catch(err => console.error("Error checking order status:", err));
-                    }
-                });
-
-                return orders;
-            });
-        }, (error) => {
-            console.error("Error listening to pending orders:", error);
-        });
-
-        return () => unsubscribe();
-    }, [currentUser, userId]);
-
-    // Listen to customer's waiting approval orders (picked status, real-time)
-    useEffect(() => {
-        if (!currentUser || !userId) {
             setWaitingApprovalOrders([]);
-            return;
-        }
-
-        const ordersRef = collection(db, `users/${userId}/online_orders`);
-        const q = query(
-            ordersRef,
-            where("customerId", "==", currentUser.uid),
-            where("status", "==", "awaiting_approval"),
-            orderBy("timestamp", "desc")
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            try {
-                const orders: OnlineOrder[] = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                } as OnlineOrder));
-
-                // Check for new awaiting approval orders (orders that weren't in the previous list)
-                setWaitingApprovalOrders(prevOrders => {
-                    const prevIds = new Set(prevOrders.map(o => o.id));
-
-                    // Find orders that are new (not in previous list)
-                    orders.forEach(order => {
-                        if (!prevIds.has(order.id) && prevOrders.length > 0) {
-                            // This is a new awaiting approval order - notify the customer
-                            sendBrowserNotification(
-                                "Order Ready for Approval!",
-                                `Your order ${order.orderNumber} has been picked and is waiting for your approval.`,
-                                order.orderNumber
-                            );
-                        }
-                    });
-
-                    return orders;
-                });
-            } catch (err) {
-                console.error("Error processing waiting approval orders:", err);
-            }
-        }, (error) => {
-            console.error("Error listening to waiting approval orders:", error);
-        });
-
-        return () => unsubscribe();
-    }, [currentUser, userId]);
-
-    // Listen to customer's approved orders (for View Orders)
-    useEffect(() => {
-        if (!currentUser || !userId) {
             setApprovedOrders([]);
             return;
         }
@@ -555,18 +444,64 @@ function CatalogPageContent() {
         const q = query(
             ordersRef,
             where("customerId", "==", currentUser.uid),
-            where("status", "==", "approved"),
             orderBy("timestamp", "desc")
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const orders: OnlineOrder[] = snapshot.docs.map(doc => ({
+            const allOrders: OnlineOrder[] = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             } as OnlineOrder));
-            setApprovedOrders(orders);
+
+            // Filter orders by status client-side
+            const pending = allOrders.filter(o => o.status === "pending");
+            const awaiting = allOrders.filter(o => o.status === "awaiting_approval");
+            const approved = allOrders.filter(o => o.status === "approved");
+
+            // Check for completed orders (orders that were pending but now have status "completed")
+            setPendingOrders(prevOrders => {
+                const currentPendingIds = new Set(pending.map(o => o.id));
+
+                prevOrders.forEach(prevOrder => {
+                    if (!currentPendingIds.has(prevOrder.id)) {
+                        // Check if this order is now completed (in the full list with completed status)
+                        const completedOrder = allOrders.find(o => o.id === prevOrder.id && o.status === "completed");
+                        if (completedOrder) {
+                            setCompletedOrderNumber(prevOrder.orderNumber);
+                            setOrderCompletedDialogOpen(true);
+
+                            sendBrowserNotification(
+                                "🎉 Order Ready!",
+                                `Your order ${prevOrder.orderNumber} has been completed and is ready!`,
+                                prevOrder.orderNumber
+                            );
+                        }
+                    }
+                });
+
+                return pending;
+            });
+
+            // Check for new awaiting approval orders
+            setWaitingApprovalOrders(prevOrders => {
+                const prevIds = new Set(prevOrders.map(o => o.id));
+
+                awaiting.forEach(order => {
+                    if (!prevIds.has(order.id) && prevOrders.length > 0) {
+                        sendBrowserNotification(
+                            "Order Ready for Approval!",
+                            `Your order ${order.orderNumber} has been picked and is waiting for your approval.`,
+                            order.orderNumber
+                        );
+                    }
+                });
+
+                return awaiting;
+            });
+
+            setApprovedOrders(approved);
         }, (error) => {
-            console.error("Error listening to approved orders:", error);
+            console.error("Error listening to customer orders:", error);
         });
 
         return () => unsubscribe();
