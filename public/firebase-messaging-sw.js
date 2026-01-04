@@ -42,9 +42,11 @@ messaging.onBackgroundMessage(async (payload) => {
         return;
     }
 
-    const notificationTitle = payload.notification?.title || 'PosUp Notification';
+    // Read from payload.data since we're using data-only messages
+    // (no "notification" key from backend to prevent FCM auto-display)
+    const notificationTitle = payload.data?.title || payload.notification?.title || 'PosUp Notification';
     const notificationOptions = {
-        body: payload.notification?.body || 'You have a new notification',
+        body: payload.data?.body || payload.notification?.body || 'You have a new notification',
         icon: '/images/icon-192.png',
         badge: '/images/icon-192.png',
         tag: payload.data?.orderId || 'posup-notification',
