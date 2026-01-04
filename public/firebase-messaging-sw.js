@@ -74,11 +74,18 @@ self.addEventListener('notificationclick', (event) => {
         url = `/catalog/${data.merchantUserId}`;
     }
 
+    // Add action parameter based on notification type
+    if (data?.type === 'order_awaiting_approval') {
+        url += '?action=approve';
+    }
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Check if there's already a window open
+            // Check if there's already a window open with the catalog
             for (const client of windowClients) {
-                if (client.url.includes(url) && 'focus' in client) {
+                // If catalog page is already open, navigate to the action URL
+                if (client.url.includes('/catalog/') && 'focus' in client) {
+                    client.navigate(url);
                     return client.focus();
                 }
             }

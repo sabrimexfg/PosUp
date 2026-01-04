@@ -203,6 +203,19 @@ function CatalogPageContent() {
         }
     }, [searchParams, currentUser, userId]);
 
+    // Handle notification click action to open approval dialog
+    useEffect(() => {
+        const action = searchParams.get("action");
+
+        if (action === "approve" && currentUser && waitingApprovalOrders.length > 0) {
+            // Open the waiting approval dialog
+            setWaitingApprovalDialogOpen(true);
+
+            // Clear the URL params without refreshing the page
+            window.history.replaceState({}, "", `/catalog/${identifier}`);
+        }
+    }, [searchParams, currentUser, waitingApprovalOrders, identifier]);
+
     // Request notification permission and register FCM token when user logs in
     useEffect(() => {
         if (!currentUser || !userId) return;
