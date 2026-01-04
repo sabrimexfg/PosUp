@@ -431,7 +431,8 @@ function CatalogPageContent() {
         return () => unsubscribe();
     }, [userId]);
 
-    // Single consolidated listener for all customer orders (reduces Firestore reads from 3 to 1)
+    // Single consolidated listener for active customer orders (reduces Firestore reads from 3 to 1)
+    // Uses "in" filter to only fetch relevant statuses, excluding completed/cancelled orders
     useEffect(() => {
         if (!currentUser || !userId) {
             setPendingOrders([]);
@@ -444,6 +445,7 @@ function CatalogPageContent() {
         const q = query(
             ordersRef,
             where("customerId", "==", currentUser.uid),
+            where("status", "in", ["pending", "awaiting_approval", "approved"]),
             orderBy("timestamp", "desc")
         );
 
