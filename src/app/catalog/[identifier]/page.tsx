@@ -177,6 +177,7 @@ function CatalogPageContent() {
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<OnlineOrder | null>(null);
     const [allowSubstitutions, setAllowSubstitutions] = useState(false);
+    const [itemSubstitutions, setItemSubstitutions] = useState<Record<string, boolean>>({});
 
     // Handle payment success from Stripe redirect
     useEffect(() => {
@@ -987,6 +988,28 @@ function CatalogPageContent() {
 
             {/* Catalog Grid */}
             <div className="max-w-6xl mx-auto p-4">
+                {/* Welcome/Info Section */}
+                {items.length > 0 && (
+                    <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 mb-4 text-white">
+                        <h2 className="text-xl font-bold mb-2">
+                            {currentUser ? `Welcome back!` : `Welcome to ${business?.name || 'our store'}!`}
+                        </h2>
+                        <p className="text-purple-100 text-sm mb-3">
+                            Browse our catalog and place your order online. We'll prepare your items and notify you when they're ready for pickup or delivery.
+                        </p>
+                        {!currentUser && (
+                            <p className="text-purple-200 text-xs">
+                                Sign in to start shopping and track your orders.
+                            </p>
+                        )}
+                        {currentUser && !existingCustomer && (
+                            <p className="text-purple-200 text-xs">
+                                Complete your profile to start placing orders.
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 {/* Global Substitution Toggle */}
                 {currentUser && existingCustomer && items.length > 0 && (
                     <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-100 rounded-lg mb-4">
@@ -1065,10 +1088,9 @@ function CatalogPageContent() {
                                                         </Label>
                                                         <Switch
                                                             id={`sub-${item.id}`}
-                                                            checked={false}
-                                                            onCheckedChange={() => {}}
+                                                            checked={itemSubstitutions[item.id] || false}
+                                                            onCheckedChange={(checked) => setItemSubstitutions(prev => ({ ...prev, [item.id]: checked }))}
                                                             className="scale-75"
-                                                            disabled
                                                         />
                                                     </div>
                                                 )}
