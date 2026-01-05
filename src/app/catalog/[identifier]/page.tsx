@@ -482,6 +482,13 @@ function CatalogPageContent() {
                     const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${user.uid}`));
                     if (customerDoc.exists()) {
                         setExistingCustomer(true);
+                    } else {
+                        // New user - pre-fill name and show address form immediately
+                        setAddressForm(prev => ({
+                            ...prev,
+                            recipientName: user.displayName || ""
+                        }));
+                        setAddressFormOpen(true);
                     }
                 } catch (err) {
                     console.error("Error checking customer:", err);
