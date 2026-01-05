@@ -1417,34 +1417,41 @@ function CatalogPageContent() {
                                                 ${(cartItem.item.price * cartItem.quantity).toFixed(2)}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={() => updateCartQuantity(cartItem.item.id, -1)}
-                                            >
-                                                <Minus className="h-3 w-3" />
-                                            </Button>
-                                            <span className="w-8 text-center text-sm font-medium">
-                                                {cartItem.quantity}
-                                            </span>
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={() => updateCartQuantity(cartItem.item.id, 1)}
-                                            >
-                                                <Plus className="h-3 w-3" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                onClick={() => removeFromCart(cartItem.item.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                        <div className="flex flex-col items-end gap-1">
+                                            {(allowSubstitutions || itemSubstitutions[cartItem.item.id]) && (
+                                                <p className="text-xs text-blue-600 font-medium">
+                                                    Replace if unavailable
+                                                </p>
+                                            )}
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => updateCartQuantity(cartItem.item.id, -1)}
+                                                >
+                                                    <Minus className="h-3 w-3" />
+                                                </Button>
+                                                <span className="w-8 text-center text-sm font-medium">
+                                                    {cartItem.quantity}
+                                                </span>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => updateCartQuantity(cartItem.item.id, 1)}
+                                                >
+                                                    <Plus className="h-3 w-3" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={() => removeFromCart(cartItem.item.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
