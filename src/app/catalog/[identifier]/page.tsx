@@ -61,6 +61,7 @@ interface OnlineOrderItem {
     total: number;
     imageUrl?: string | null;
     category: string;
+    allowSubstitution?: boolean;
 }
 
 interface OnlineOrder {
@@ -650,7 +651,8 @@ function CatalogPageContent() {
                 quantity: ci.quantity,
                 total: ci.item.price * ci.quantity,
                 imageUrl: ci.item.imageUrl || null,
-                category: ci.item.category
+                category: ci.item.category,
+                allowSubstitution: allowSubstitutions || itemSubstitutions[ci.item.id] || false
             }));
 
             const orderData = {
