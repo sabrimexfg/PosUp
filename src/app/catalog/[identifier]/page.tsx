@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper, ClipboardCheck } from "lucide-react";
+import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper, ClipboardCheck, ArrowRight, RefreshCw } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -53,6 +53,15 @@ interface OnlineCustomerAddress {
     country: string;
 }
 
+interface SubstituteItem {
+    itemId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    total: number;
+    imageUrl?: string;
+}
+
 interface OnlineOrderItem {
     itemId: string;
     name: string;
@@ -62,6 +71,8 @@ interface OnlineOrderItem {
     imageUrl?: string | null;
     category: string;
     allowSubstitution?: boolean;
+    substitutedWith?: SubstituteItem[];
+    adjustedTotal?: number;
 }
 
 interface OnlineOrder {
@@ -74,6 +85,7 @@ interface OnlineOrder {
     items: OnlineOrderItem[];
     subtotal: number;
     total: number;
+    originalTotal?: number;
     status: string;
     paymentMethod: string;
     source: string;
@@ -1645,29 +1657,54 @@ function CatalogPageContent() {
                                         {/* Order Items */}
                                         <div className="space-y-2">
                                             {order.items.map((item, idx) => (
-                                                <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-md">
-                                                    <div className="h-10 w-10 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
-                                                        {item.imageUrl ? (
-                                                            <img
-                                                                src={item.imageUrl}
-                                                                alt={item.name}
-                                                                className="w-full h-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center">
-                                                                <ImageOff className="h-4 w-4 text-muted-foreground/40" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-sm truncate">{item.name}</p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            ${item.price.toFixed(2)} × {item.quantity}
+                                                <div key={idx} className="p-2 bg-gray-50 rounded-md">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-10 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+                                                            {item.imageUrl ? (
+                                                                <img
+                                                                    src={item.imageUrl}
+                                                                    alt={item.name}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center">
+                                                                    <ImageOff className="h-4 w-4 text-muted-foreground/40" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className={`font-medium text-sm truncate ${item.substitutedWith && item.substitutedWith.length > 0 ? 'line-through text-muted-foreground' : ''}`}>
+                                                                {item.name}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                ${item.price.toFixed(2)} × {item.quantity}
+                                                            </p>
+                                                        </div>
+                                                        <p className={`text-sm font-semibold ${item.substitutedWith && item.substitutedWith.length > 0 ? 'line-through text-muted-foreground' : 'text-purple-600'}`}>
+                                                            ${item.total.toFixed(2)}
                                                         </p>
                                                     </div>
-                                                    <p className="text-sm font-semibold text-purple-600">
-                                                        ${item.total.toFixed(2)}
-                                                    </p>
+
+                                                    {/* Show substituted items */}
+                                                    {item.substitutedWith && item.substitutedWith.length > 0 && (
+                                                        <div className="mt-2 pl-2 border-l-2 border-orange-300 space-y-1">
+                                                            <div className="flex items-center gap-1 text-xs text-orange-600 font-medium">
+                                                                <RefreshCw className="h-3 w-3" />
+                                                                Replaced with:
+                                                            </div>
+                                                            {item.substitutedWith.map((sub, subIdx) => (
+                                                                <div key={subIdx} className="flex items-center gap-2 text-sm">
+                                                                    <ArrowRight className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                                                                    <span className="flex-1 truncate text-orange-700 font-medium">
+                                                                        {sub.quantity}× {sub.name}
+                                                                    </span>
+                                                                    <span className="text-orange-600 font-semibold">
+                                                                        ${sub.total.toFixed(2)}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -1676,9 +1713,20 @@ function CatalogPageContent() {
                                         <div className="border-t pt-3 flex justify-between items-center">
                                             <div className="flex items-center gap-3">
                                                 <span className="font-medium">Total</span>
-                                                <span className="text-lg font-bold text-purple-600">
-                                                    ${order.total.toFixed(2)}
-                                                </span>
+                                                {order.originalTotal && order.originalTotal !== order.total ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm line-through text-muted-foreground">
+                                                            ${order.originalTotal.toFixed(2)}
+                                                        </span>
+                                                        <span className="text-lg font-bold text-purple-600">
+                                                            ${order.total.toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-lg font-bold text-purple-600">
+                                                        ${order.total.toFixed(2)}
+                                                    </span>
+                                                )}
                                             </div>
                                             <Button
                                                 size="sm"
