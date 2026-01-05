@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper, ClipboardCheck } from "lucide-react";
 import {
@@ -175,6 +176,7 @@ function CatalogPageContent() {
     const [approvedOrders, setApprovedOrders] = useState<OnlineOrder[]>([]);
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<OnlineOrder | null>(null);
+    const [allowSubstitutions, setAllowSubstitutions] = useState(false);
 
     // Handle payment success from Stripe redirect
     useEffect(() => {
@@ -1382,6 +1384,23 @@ function CatalogPageContent() {
                                         </div>
                                     </div>
                                 ))}
+
+                                {/* Substitution Toggle */}
+                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg mt-4">
+                                    <div className="flex-1">
+                                        <Label htmlFor="substitution-toggle" className="text-sm font-medium cursor-pointer">
+                                            Replace with similar item
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Allow substitutions if items are unavailable
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="substitution-toggle"
+                                        checked={allowSubstitutions}
+                                        onCheckedChange={setAllowSubstitutions}
+                                    />
+                                </div>
 
                                 {/* Total */}
                                 <div className="border-t pt-4 mt-4">
