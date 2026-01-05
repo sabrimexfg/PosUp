@@ -987,6 +987,25 @@ function CatalogPageContent() {
 
             {/* Catalog Grid */}
             <div className="max-w-6xl mx-auto p-4">
+                {/* Global Substitution Toggle */}
+                {currentUser && existingCustomer && items.length > 0 && (
+                    <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-100 rounded-lg mb-4">
+                        <div className="flex-1">
+                            <Label htmlFor="global-substitution" className="text-sm font-medium cursor-pointer">
+                                Allow substitutions for all items
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Replace any unavailable items with similar alternatives
+                            </p>
+                        </div>
+                        <Switch
+                            id="global-substitution"
+                            checked={allowSubstitutions}
+                            onCheckedChange={setAllowSubstitutions}
+                        />
+                    </div>
+                )}
+
                 {items.length === 0 ? (
                     <Card className="p-12 mt-8">
                         <div className="text-center text-muted-foreground">
@@ -1030,14 +1049,30 @@ function CatalogPageContent() {
                                             {item.category}
                                         </p>
                                         {currentUser && existingCustomer && (
-                                            <Button
-                                                size="sm"
-                                                className="w-full bg-purple-600 hover:bg-purple-700"
-                                                onClick={() => addToCart(item)}
-                                            >
-                                                <Plus className="h-4 w-4 mr-1" />
-                                                Add to Cart
-                                            </Button>
+                                            <>
+                                                <Button
+                                                    size="sm"
+                                                    className="w-full bg-purple-600 hover:bg-purple-700"
+                                                    onClick={() => addToCart(item)}
+                                                >
+                                                    <Plus className="h-4 w-4 mr-1" />
+                                                    Add to Cart
+                                                </Button>
+                                                {!allowSubstitutions && (
+                                                    <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                                                        <Label htmlFor={`sub-${item.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                                                            Replace if unavailable
+                                                        </Label>
+                                                        <Switch
+                                                            id={`sub-${item.id}`}
+                                                            checked={false}
+                                                            onCheckedChange={() => {}}
+                                                            className="scale-75"
+                                                            disabled
+                                                        />
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                     </CardContent>
                                 </Card>
@@ -1384,23 +1419,6 @@ function CatalogPageContent() {
                                         </div>
                                     </div>
                                 ))}
-
-                                {/* Substitution Toggle */}
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg mt-4">
-                                    <div className="flex-1">
-                                        <Label htmlFor="substitution-toggle" className="text-sm font-medium cursor-pointer">
-                                            Replace with similar item
-                                        </Label>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                            Allow substitutions if items are unavailable
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        id="substitution-toggle"
-                                        checked={allowSubstitutions}
-                                        onCheckedChange={setAllowSubstitutions}
-                                    />
-                                </div>
 
                                 {/* Total */}
                                 <div className="border-t pt-4 mt-4">
