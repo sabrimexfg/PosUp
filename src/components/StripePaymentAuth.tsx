@@ -55,11 +55,13 @@ function PaymentForm({
     const elements = useElements();
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isElementReady, setIsElementReady] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!stripe || !elements) {
+        if (!stripe || !elements || !isElementReady) {
+            setErrorMessage("Payment form is still loading. Please wait a moment.");
             return;
         }
 
@@ -67,10 +69,18 @@ function PaymentForm({
         setErrorMessage(null);
 
         try {
+            // Submit the form first to ensure all fields are validated
+            const { error: submitError } = await elements.submit();
+            if (submitError) {
+                setErrorMessage(submitError.message || "Please check your payment details");
+                setIsProcessing(false);
+                return;
+            }
+
             const { error } = await stripe.confirmPayment({
                 elements,
                 confirmParams: {
-                    return_url: window.location.href, // Not used since we handle redirect ourselves
+                    return_url: window.location.href,
                 },
                 redirect: "if_required",
             });
@@ -112,6 +122,11 @@ function PaymentForm({
                 options={{
                     layout: "tabs",
                 }}
+                onReady={() => setIsElementReady(true)}
+                onLoadError={(event) => {
+                    console.error("PaymentElement load error:", event);
+                    setErrorMessage("Failed to load payment form. Please refresh and try again.");
+                }}
             />
 
             {errorMessage && (
@@ -122,7 +137,7 @@ function PaymentForm({
 
             <Button
                 type="submit"
-                disabled={!stripe || isProcessing}
+                disabled={!stripe || !isElementReady || isProcessing}
                 className="w-full"
                 size="lg"
             >
@@ -130,6 +145,11 @@ function PaymentForm({
                     <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Processing...
+                    </>
+                ) : !isElementReady ? (
+                    <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Loading...
                     </>
                 ) : (
                     <>
