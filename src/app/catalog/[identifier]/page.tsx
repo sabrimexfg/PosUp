@@ -724,7 +724,6 @@ function CatalogPageContent() {
                 paymentStatus: "authorized",
                 paymentIntentId,
                 authorizedAmount,
-                authorizedAt: Date.now()
             });
 
             // Show success and clear state
