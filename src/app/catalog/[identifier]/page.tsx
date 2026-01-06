@@ -190,7 +190,6 @@ function CatalogPageContent() {
     const [approvedOrders, setApprovedOrders] = useState<OnlineOrder[]>([]);
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<OnlineOrder | null>(null);
-    const [allowSubstitutions, setAllowSubstitutions] = useState(false);
     const [itemSubstitutions, setItemSubstitutions] = useState<Record<string, boolean>>({});
 
     // Pre-authorization payment state (pay upfront, capture later)
@@ -674,7 +673,7 @@ function CatalogPageContent() {
                 total: ci.item.price * ci.quantity,
                 imageUrl: ci.item.imageUrl || null,
                 category: ci.item.category,
-                allowSubstitution: allowSubstitutions || itemSubstitutions[ci.item.id] || false
+                allowSubstitution: itemSubstitutions[ci.item.id] || false
             }));
 
             const orderData = {
@@ -1094,25 +1093,6 @@ function CatalogPageContent() {
                     </div>
                 )}
 
-                {/* Global Substitution Toggle */}
-                {currentUser && existingCustomer && items.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-100 rounded-lg mb-4">
-                        <div className="flex-1">
-                            <Label htmlFor="global-substitution" className="text-sm font-medium cursor-pointer">
-                                Allow substitutions for all items
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                                Replace any unavailable items with similar alternatives
-                            </p>
-                        </div>
-                        <Switch
-                            id="global-substitution"
-                            checked={allowSubstitutions}
-                            onCheckedChange={setAllowSubstitutions}
-                        />
-                    </div>
-                )}
-
                 {items.length === 0 ? (
                     <Card className="p-12 mt-8">
                         <div className="text-center text-muted-foreground">
@@ -1165,19 +1145,17 @@ function CatalogPageContent() {
                                                     <Plus className="h-4 w-4 mr-1" />
                                                     Add to Cart
                                                 </Button>
-                                                {!allowSubstitutions && (
-                                                    <div className="flex items-center justify-between mt-2 pt-2 border-t">
-                                                        <Label htmlFor={`sub-${item.id}`} className="text-xs text-muted-foreground cursor-pointer">
-                                                            Replace if unavailable
-                                                        </Label>
-                                                        <Switch
-                                                            id={`sub-${item.id}`}
-                                                            checked={itemSubstitutions[item.id] || false}
-                                                            onCheckedChange={(checked) => setItemSubstitutions(prev => ({ ...prev, [item.id]: checked }))}
-                                                            className="scale-75"
-                                                        />
-                                                    </div>
-                                                )}
+                                                <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                                                    <Label htmlFor={`sub-${item.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                                                        Replace if unavailable
+                                                    </Label>
+                                                    <Switch
+                                                        id={`sub-${item.id}`}
+                                                        checked={itemSubstitutions[item.id] || false}
+                                                        onCheckedChange={(checked) => setItemSubstitutions(prev => ({ ...prev, [item.id]: checked }))}
+                                                        className="scale-75"
+                                                    />
+                                                </div>
                                             </>
                                         )}
                                     </CardContent>
@@ -1495,7 +1473,7 @@ function CatalogPageContent() {
                                             </p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
-                                            {(allowSubstitutions || itemSubstitutions[cartItem.item.id]) && (
+                                            {itemSubstitutions[cartItem.item.id] && (
                                                 <p className="text-xs text-blue-600 font-medium">
                                                     Replace if unavailable
                                                 </p>
