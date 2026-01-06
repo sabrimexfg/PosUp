@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { useState, useEffect, useMemo } from "react";
+import { loadStripe, Stripe } from "@stripe/stripe-js";
 import {
     Elements,
     PaymentElement,
@@ -10,12 +10,30 @@ import {
 } from "@stripe/react-stripe-js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { functions, httpsCallable } from "@/lib/firebase";
+import { functions, httpsCallable, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { Loader2, CreditCard, CheckCircle2, ShieldCheck, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Initialize Stripe with the publishable key
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+// Cache for Stripe instances per connected account
+const stripePromiseCache: Map<string, Promise<Stripe | null>> = new Map();
+
+// Get or create Stripe instance for a connected account
+function getStripePromise(connectedAccountId?: string): Promise<Stripe | null> {
+    const cacheKey = connectedAccountId || "platform";
+
+    if (!stripePromiseCache.has(cacheKey)) {
+        const options = connectedAccountId
+            ? { stripeAccount: connectedAccountId }
+            : undefined;
+        stripePromiseCache.set(
+            cacheKey,
+            loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!, options)
+        );
+    }
+
+    return stripePromiseCache.get(cacheKey)!;
+}
 
 interface PaymentAuthResponse {
     clientSecret: string;
@@ -184,6 +202,32 @@ export function StripePaymentAuthDialog({
     const [authorizedAmount, setAuthorizedAmount] = useState<number>(0);
     const [isReady, setIsReady] = useState(false);
     const [paymentComplete, setPaymentComplete] = useState(false);
+    const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+
+    // Fetch the merchant's Stripe connected account ID
+    useEffect(() => {
+        if (open && merchantUserId && !stripeAccountId) {
+            const fetchStripeAccount = async () => {
+                try {
+                    const merchantDoc = await getDoc(doc(db, "users", merchantUserId));
+                    if (merchantDoc.exists()) {
+                        const data = merchantDoc.data();
+                        if (data.stripeAccountId) {
+                            setStripeAccountId(data.stripeAccountId);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching merchant Stripe account:", err);
+                }
+            };
+            fetchStripeAccount();
+        }
+    }, [open, merchantUserId, stripeAccountId]);
+
+    // Get the Stripe promise for this connected account
+    const stripePromise = useMemo(() => {
+        return getStripePromise(stripeAccountId || undefined);
+    }, [stripeAccountId]);
 
     // Fetch client secret when dialog opens
     useEffect(() => {
@@ -249,6 +293,7 @@ export function StripePaymentAuthDialog({
                 setIsReady(false);
                 setError(null);
                 setPaymentComplete(false);
+                setStripeAccountId(null);
             }, 300);
         }
     };
