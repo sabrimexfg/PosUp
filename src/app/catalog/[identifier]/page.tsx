@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StripeCheckoutDialog } from "@/components/StripeCheckout";
+import { StripePaymentAuthDialog } from "@/components/StripePaymentAuth";
 
 interface Item {
     id: string;
@@ -191,6 +192,14 @@ function CatalogPageContent() {
     const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<OnlineOrder | null>(null);
     const [allowSubstitutions, setAllowSubstitutions] = useState(false);
     const [itemSubstitutions, setItemSubstitutions] = useState<Record<string, boolean>>({});
+
+    // Pre-authorization payment state (pay upfront, capture later)
+    const [paymentAuthDialogOpen, setPaymentAuthDialogOpen] = useState(false);
+    const [pendingOrderForPayment, setPendingOrderForPayment] = useState<{
+        orderId: string;
+        orderNumber: string;
+        total: number;
+    } | null>(null);
 
     // Handle payment success from Stripe redirect
     useEffect(() => {
@@ -656,6 +665,7 @@ function CatalogPageContent() {
             const customerData = customerDoc.exists() ? customerDoc.data() : null;
 
             const orderNumber = generateOrderNumber();
+            const orderTotal = getCartTotal();
             const orderItems = cart.map(ci => ({
                 itemId: ci.item.id,
                 name: ci.item.name,
@@ -674,28 +684,82 @@ function CatalogPageContent() {
                 customerName: customerData?.name || currentUser.displayName || "Unknown",
                 shippingAddress: customerData?.address || null,
                 items: orderItems,
-                subtotal: getCartTotal(),
-                total: getCartTotal(),
-                status: "pending",
+                subtotal: orderTotal,
+                total: orderTotal,
+                status: "pending_payment", // New status: waiting for payment authorization
                 paymentMethod: "online",
+                paymentStatus: "pending", // Track payment separately
                 source: "web_catalog",
                 timestamp: Date.now(),
                 createdAt: Date.now()
             };
 
             // Save to online_orders subcollection
-            await addDoc(collection(db, `users/${userId}/online_orders`), orderData);
+            const orderRef = await addDoc(collection(db, `users/${userId}/online_orders`), orderData);
 
-            // Clear cart and show success
-            setCart([]);
+            // Close cart dialog and open payment authorization dialog
             setCartDialogOpen(false);
-            setLastOrderNumber(orderNumber);
-            setOrderSuccessDialogOpen(true);
+            setPendingOrderForPayment({
+                orderId: orderRef.id,
+                orderNumber,
+                total: orderTotal
+            });
+            setPaymentAuthDialogOpen(true);
         } catch (err) {
             console.error("Error placing order:", err);
         } finally {
             setPlacingOrder(false);
         }
+    };
+
+    // Handle successful payment authorization (card authorized, not yet captured)
+    const handlePaymentAuthSuccess = async (paymentIntentId: string, authorizedAmount: number) => {
+        if (!pendingOrderForPayment || !userId) return;
+
+        try {
+            // Update order with payment intent ID and change status to pending (ready for merchant)
+            const orderRef = doc(db, `users/${userId}/online_orders`, pendingOrderForPayment.orderId);
+            await updateDoc(orderRef, {
+                status: "pending", // Now ready for merchant to pick
+                paymentStatus: "authorized",
+                paymentIntentId,
+                authorizedAmount,
+                authorizedAt: Date.now()
+            });
+
+            // Show success and clear state
+            setLastOrderNumber(pendingOrderForPayment.orderNumber);
+            setCart([]);
+            setPendingOrderForPayment(null);
+            setPaymentAuthDialogOpen(false);
+            setOrderSuccessDialogOpen(true);
+        } catch (err) {
+            console.error("Error updating order after payment auth:", err);
+        }
+    };
+
+    // Handle payment auth dialog close (cleanup if cancelled)
+    const handlePaymentAuthDialogClose = async (open: boolean) => {
+        setPaymentAuthDialogOpen(open);
+        if (!open && pendingOrderForPayment && userId) {
+            // User closed dialog without completing payment - cancel the order
+            try {
+                const orderRef = doc(db, `users/${userId}/online_orders`, pendingOrderForPayment.orderId);
+                await updateDoc(orderRef, {
+                    status: "cancelled",
+                    paymentStatus: "cancelled",
+                    cancelledAt: Date.now(),
+                    cancelReason: "Payment not completed"
+                });
+            } catch (err) {
+                console.error("Error cancelling order:", err);
+            }
+            setPendingOrderForPayment(null);
+        }
+    };
+
+    const handlePaymentAuthError = (error: string) => {
+        console.error("Payment authorization error:", error);
     };
 
     const handleApproveOrder = (order: OnlineOrder) => {
@@ -1769,7 +1833,7 @@ function CatalogPageContent() {
                 </DialogContent>
             </Dialog>
 
-            {/* Stripe Checkout Dialog */}
+            {/* Stripe Checkout Dialog (for approving orders after merchant picks) */}
             {selectedOrderForPayment && userId && (
                 <StripeCheckoutDialog
                     open={checkoutDialogOpen}
@@ -1781,6 +1845,22 @@ function CatalogPageContent() {
                     customerEmail={currentUser?.email || undefined}
                     onSuccess={handlePaymentSuccess}
                     onError={handlePaymentError}
+                />
+            )}
+
+            {/* Stripe Payment Authorization Dialog (pay upfront when placing order) */}
+            {pendingOrderForPayment && userId && (
+                <StripePaymentAuthDialog
+                    open={paymentAuthDialogOpen}
+                    onOpenChange={handlePaymentAuthDialogClose}
+                    merchantUserId={userId}
+                    orderId={pendingOrderForPayment.orderId}
+                    orderNumber={pendingOrderForPayment.orderNumber}
+                    amount={pendingOrderForPayment.total}
+                    bufferPercent={0.10}
+                    customerEmail={currentUser?.email || undefined}
+                    onSuccess={handlePaymentAuthSuccess}
+                    onError={handlePaymentAuthError}
                 />
             )}
         </div>
