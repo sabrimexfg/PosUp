@@ -47,6 +47,7 @@ interface CartItem {
 
 interface OnlineCustomerAddress {
     recipientName: string;
+    phone: string;
     streetAddress: string;
     addressLine2: string;
     city: string;
@@ -166,6 +167,7 @@ function CatalogPageContent() {
     const [savingCustomer, setSavingCustomer] = useState(false);
     const [addressForm, setAddressForm] = useState<OnlineCustomerAddress>({
         recipientName: "",
+        phone: "",
         streetAddress: "",
         addressLine2: "",
         city: "",
@@ -849,7 +851,8 @@ function CatalogPageContent() {
         if (!currentUser) return;
 
         // Validate required fields
-        if (!addressForm.recipientName.trim() || !addressForm.streetAddress.trim() ||
+        if (!addressForm.recipientName.trim() || !addressForm.phone.trim() ||
+            !addressForm.streetAddress.trim() ||
             !addressForm.city.trim() || !addressForm.state.trim() ||
             !addressForm.postalCode.trim() || !addressForm.country.trim()) {
             return;
@@ -861,6 +864,7 @@ function CatalogPageContent() {
                 id: currentUser.uid,
                 email: currentUser.email,
                 name: addressForm.recipientName.trim(),
+                phone: addressForm.phone.trim(),
                 address: {
                     streetAddress: addressForm.streetAddress.trim(),
                     addressLine2: addressForm.addressLine2.trim(),
@@ -906,6 +910,7 @@ function CatalogPageContent() {
                 const data = customerDoc.data();
                 setAddressForm({
                     recipientName: data.name || "",
+                    phone: data.phone || "",
                     streetAddress: data.address?.streetAddress || "",
                     addressLine2: data.address?.addressLine2 || "",
                     city: data.address?.city || "",
@@ -1248,6 +1253,19 @@ function CatalogPageContent() {
                             />
                         </div>
                         <div className="space-y-2">
+                            <Label htmlFor="phone">Phone Number *</Label>
+                            <Input
+                                id="phone"
+                                type="tel"
+                                value={addressForm.phone}
+                                onChange={(e) => setAddressForm(prev => ({ ...prev, phone: e.target.value }))}
+                                placeholder="(555) 123-4567"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                We&apos;ll text you order status updates. Msg & data rates may apply. Reply STOP to opt out.
+                            </p>
+                        </div>
+                        <div className="space-y-2">
                             <Label htmlFor="streetAddress">Street Address *</Label>
                             <Input
                                 id="streetAddress"
@@ -1307,7 +1325,8 @@ function CatalogPageContent() {
                         </div>
                         <Button
                             onClick={handleSaveCustomer}
-                            disabled={savingCustomer || !addressForm.recipientName.trim() || !addressForm.streetAddress.trim() ||
+                            disabled={savingCustomer || !addressForm.recipientName.trim() || !addressForm.phone.trim() ||
+                                !addressForm.streetAddress.trim() ||
                                 !addressForm.city.trim() || !addressForm.state.trim() ||
                                 !addressForm.postalCode.trim() || !addressForm.country.trim()}
                             className="w-full mt-4 bg-purple-600 hover:bg-purple-700"
