@@ -1012,7 +1012,8 @@ function CatalogPageContent() {
                             </div>
                         </div>
                         {/* Show cart and user menu on Android and desktop (not iOS) */}
-                        {!isIOS && (
+                        {/* TODO: Re-enable iOS check after testing: {!isIOS && ( */}
+                        {(
                             <div className="flex items-center gap-2">
                                 <Button variant="outline" size="icon" className="relative" onClick={handleCartClick}>
                                     <ShoppingCart className="h-6 w-6" />
