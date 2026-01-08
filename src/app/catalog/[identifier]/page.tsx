@@ -999,11 +999,11 @@ function CatalogPageContent() {
                                 <img
                                     src={business.logoUrl}
                                     alt={business.name || "Business logo"}
-                                    className="h-10 w-10 rounded-full object-cover"
+                                    className="h-14 w-14 rounded-lg object-cover"
                                 />
                             ) : (
-                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                    <Store className="h-5 w-5 text-muted-foreground" />
+                                <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center">
+                                    <Store className="h-7 w-7 text-muted-foreground" />
                                 </div>
                             )}
                             <div>
