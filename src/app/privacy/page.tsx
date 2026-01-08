@@ -119,6 +119,49 @@ export default function PrivacyPage() {
 
         <section className="mb-16">
           <h2 className="text-3xl font-semibold text-[#1d1d1f] mb-6">
+            SMS Communications
+          </h2>
+          <p className="text-[17px] text-[#424245] leading-relaxed mb-5">
+            When you provide your phone number during account registration on our
+            online catalog, you consent to receive transactional SMS messages
+            related to your orders. These messages may include:
+          </p>
+          <ul className="space-y-3 mb-5">
+            {[
+              "Order confirmation notifications",
+              "Order status updates (picked, ready, out for delivery)",
+              "Payment confirmation messages",
+              "Order approval requests",
+            ].map((item) => (
+              <li
+                key={item}
+                className="relative pl-6 text-[17px] text-[#424245]"
+              >
+                <span className="absolute left-0 top-2.5 w-1.5 h-1.5 bg-[#7C3AED] rounded-full" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <div className="info-card">
+            <h3 className="text-xl font-semibold text-[#1d1d1f] mb-4">
+              Opting Out of SMS
+            </h3>
+            <p className="text-[17px] text-[#424245] leading-relaxed mb-3">
+              You can opt out of SMS notifications at any time by replying
+              &quot;STOP&quot; to any message you receive. Standard message and
+              data rates may apply. Message frequency varies based on your order
+              activity.
+            </p>
+            <p className="text-[17px] text-[#424245] leading-relaxed">
+              We do not send marketing or promotional SMS messages. All SMS
+              communications are strictly transactional and related to your
+              orders.
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-16">
+          <h2 className="text-3xl font-semibold text-[#1d1d1f] mb-6">
             Data Storage & Security
           </h2>
           <p className="text-[17px] text-[#424245] leading-relaxed mb-5">
