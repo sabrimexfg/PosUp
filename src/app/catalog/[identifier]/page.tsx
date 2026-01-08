@@ -37,6 +37,7 @@ interface Business {
     name: string;
     phone?: string;
     address?: string;
+    logoUrl?: string;
 }
 
 interface CartItem {
@@ -448,7 +449,8 @@ function CatalogPageContent() {
                 setBusiness({
                     name: profileData.businessName || "Store",
                     phone: profileData.businessPhone,
-                    address: profileData.businessAddress
+                    address: profileData.businessAddress,
+                    logoUrl: profileData.businessLogoUrl
                 });
             } catch (err: any) {
                 console.error("[Catalog] Step 1 FAILED: Error fetching public_profile/info:", err);
@@ -993,9 +995,17 @@ function CatalogPageContent() {
                 <div className="max-w-6xl mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                                <Store className="h-5 w-5 text-purple-600" />
-                            </div>
+                            {business?.logoUrl ? (
+                                <img
+                                    src={business.logoUrl}
+                                    alt={business.name || "Business logo"}
+                                    className="h-10 w-10 rounded-full object-cover"
+                                />
+                            ) : (
+                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                    <Store className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                            )}
                             <div>
                                 <h1 className="font-semibold text-lg">{business?.name || "Catalog"}</h1>
                                 <p className="text-xs text-muted-foreground">{items.length} products</p>
