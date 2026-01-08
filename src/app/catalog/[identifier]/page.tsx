@@ -968,25 +968,25 @@ function CatalogPageContent() {
         );
     }
 
-    // iOS users see a coming soon message
-    if (isIOS) {
-        return (
-            <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white flex items-center justify-center p-6">
-                <Card className="p-8 text-center max-w-md">
-                    <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
-                        <Store className="h-8 w-8 text-purple-600" />
-                    </div>
-                    <h1 className="text-2xl font-bold mb-2">{business?.name || "Welcome!"}</h1>
-                    <p className="text-muted-foreground mb-6">
-                        Our iOS ordering experience is coming soon! In the meantime, browse our catalog on your desktop or Android device.
-                    </p>
-                    <div className="text-xs text-muted-foreground">
-                        Powered by PosUp
-                    </div>
-                </Card>
-            </div>
-        );
-    }
+    // TODO: Re-enable iOS coming soon message after testing
+    // if (isIOS) {
+    //     return (
+    //         <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white flex items-center justify-center p-6">
+    //             <Card className="p-8 text-center max-w-md">
+    //                 <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
+    //                     <Store className="h-8 w-8 text-purple-600" />
+    //                 </div>
+    //                 <h1 className="text-2xl font-bold mb-2">{business?.name || "Welcome!"}</h1>
+    //                 <p className="text-muted-foreground mb-6">
+    //                     Our iOS ordering experience is coming soon! In the meantime, browse our catalog on your desktop or Android device.
+    //                 </p>
+    //                 <div className="text-xs text-muted-foreground">
+    //                     Powered by PosUp
+    //                 </div>
+    //             </Card>
+    //         </div>
+    //     );
+    // }
 
     return (
         <div className="min-h-screen bg-gray-50">
