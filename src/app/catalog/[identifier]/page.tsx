@@ -1184,7 +1184,10 @@ function CatalogPageContent() {
 
             {/* Footer */}
             <div className="text-center py-8 text-xs text-muted-foreground">
-                Powered by PosUp
+                <p>Powered by PosUp</p>
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    Privacy Policy
+                </a>
             </div>
 
             {/* Auth Dialog */}
