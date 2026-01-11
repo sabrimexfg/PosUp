@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot, updateDoc, requestNotificationPermission, onForegroundMessage } from "@/lib/firebase";
+import { db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, orderBy, onSnapshot, updateDoc, requestNotificationPermission, onForegroundMessage, functions, httpsCallable } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -202,6 +202,9 @@ function CatalogPageContent() {
         orderNumber: string;
         total: number;
     } | null>(null);
+
+    // Order cancellation state
+    const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
     // Handle payment success from Stripe redirect
     useEffect(() => {
@@ -768,6 +771,34 @@ function CatalogPageContent() {
         setSelectedOrderForPayment(order);
         setWaitingApprovalDialogOpen(false); // Close the waiting approval dialog
         setCheckoutDialogOpen(true);
+    };
+
+    const handleCancelOrder = async (order: OnlineOrder) => {
+        if (!userId) return;
+
+        const confirmed = window.confirm(
+            `Are you sure you want to cancel order ${order.orderNumber}? Any payment hold will be released back to your card.`
+        );
+
+        if (!confirmed) return;
+
+        setCancellingOrderId(order.id);
+
+        try {
+            const cancelOrder = httpsCallable(functions, 'customerCancelOrder');
+            await cancelOrder({
+                orderId: order.id,
+                merchantUserId: userId
+            });
+
+            // Order will be removed from pendingOrders automatically via the onSnapshot listener
+            alert("Order cancelled successfully. Any payment hold has been released.");
+        } catch (err: any) {
+            console.error("Error cancelling order:", err);
+            alert(err.message || "Failed to cancel order. Please try again.");
+        } finally {
+            setCancellingOrderId(null);
+        }
     };
 
     const handlePaymentSuccess = async () => {
@@ -1673,12 +1704,33 @@ function CatalogPageContent() {
                                             ))}
                                         </div>
 
-                                        {/* Order Total */}
-                                        <div className="border-t pt-3 flex justify-between items-center">
-                                            <span className="font-medium">Total</span>
-                                            <span className="text-lg font-bold text-purple-600">
-                                                ${order.total.toFixed(2)}
-                                            </span>
+                                        {/* Order Total and Cancel Button */}
+                                        <div className="border-t pt-3 space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-medium">Total</span>
+                                                <span className="text-lg font-bold text-purple-600">
+                                                    ${order.total.toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                                onClick={() => handleCancelOrder(order)}
+                                                disabled={cancellingOrderId === order.id}
+                                            >
+                                                {cancellingOrderId === order.id ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                        Cancelling...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Trash2 className="h-4 w-4 mr-2" />
+                                                        Cancel Order
+                                                    </>
+                                                )}
+                                            </Button>
                                         </div>
                                     </div>
                                 ))}
