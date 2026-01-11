@@ -11,7 +11,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper, ClipboardCheck, ArrowRight, RefreshCw } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper, ClipboardCheck, ArrowRight, RefreshCw, XCircle } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -205,6 +216,8 @@ function CatalogPageContent() {
 
     // Order cancellation state
     const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
+    const [orderToCancel, setOrderToCancel] = useState<OnlineOrder | null>(null);
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
     // Handle payment success from Stripe redirect
     useEffect(() => {
@@ -773,31 +786,38 @@ function CatalogPageContent() {
         setCheckoutDialogOpen(true);
     };
 
-    const handleCancelOrder = async (order: OnlineOrder) => {
-        if (!userId) return;
+    // Opens the cancel confirmation dialog
+    const handleCancelOrderClick = (order: OnlineOrder) => {
+        setOrderToCancel(order);
+        setCancelDialogOpen(true);
+    };
 
-        const confirmed = window.confirm(
-            `Are you sure you want to cancel order ${order.orderNumber}? Any payment hold will be released back to your card.`
-        );
+    // Actually cancels the order after confirmation
+    const handleConfirmCancelOrder = async () => {
+        if (!userId || !orderToCancel) return;
 
-        if (!confirmed) return;
-
-        setCancellingOrderId(order.id);
+        setCancelDialogOpen(false);
+        setCancellingOrderId(orderToCancel.id);
 
         try {
             const cancelOrder = httpsCallable(functions, 'customerCancelOrder');
             await cancelOrder({
-                orderId: order.id,
+                orderId: orderToCancel.id,
                 merchantUserId: userId
             });
 
             // Order will be removed from pendingOrders automatically via the onSnapshot listener
-            alert("Order cancelled successfully. Any payment hold has been released.");
+            toast.success("Order cancelled", {
+                description: "Any payment hold has been released back to your card."
+            });
         } catch (err: any) {
             console.error("Error cancelling order:", err);
-            alert(err.message || "Failed to cancel order. Please try again.");
+            toast.error("Failed to cancel order", {
+                description: err.message || "Please try again."
+            });
         } finally {
             setCancellingOrderId(null);
+            setOrderToCancel(null);
         }
     };
 
@@ -1716,7 +1736,7 @@ function CatalogPageContent() {
                                                 variant="outline"
                                                 size="sm"
                                                 className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                                                onClick={() => handleCancelOrder(order)}
+                                                onClick={() => handleCancelOrderClick(order)}
                                                 disabled={cancellingOrderId === order.id}
                                             >
                                                 {cancellingOrderId === order.id ? (
@@ -1894,6 +1914,34 @@ function CatalogPageContent() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Cancel Order Confirmation Dialog */}
+            <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <XCircle className="h-5 w-5 text-red-500" />
+                            Cancel Order?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to cancel order{" "}
+                            <span className="font-mono font-semibold">{orderToCancel?.orderNumber}</span>?
+                            Any payment hold will be released back to your card.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setOrderToCancel(null)}>
+                            Keep Order
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmCancelOrder}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Cancel Order
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Stripe Checkout Dialog (for approving orders after merchant picks) */}
             {selectedOrderForPayment && userId && (
