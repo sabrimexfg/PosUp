@@ -11,8 +11,9 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { functions, httpsCallable } from "@/lib/firebase";
-import { Loader2, CreditCard, CheckCircle2, ShieldCheck, Info } from "lucide-react";
+import { Loader2, CreditCard, CheckCircle2, ShieldCheck, Info, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Cache for Stripe instances per connected account
 const stripePromiseCache: Map<string, Promise<Stripe | null>> = new Map();
@@ -313,9 +314,59 @@ export function StripePaymentAuthDialog({
 
                         <div className="py-2">
                             {!isReady && !error && (
-                                <div className="flex flex-col items-center justify-center py-12">
-                                    <Loader2 className="h-8 w-8 animate-spin text-purple-600 mb-4" />
-                                    <p className="text-muted-foreground">Preparing secure checkout...</p>
+                                <div className="space-y-4">
+                                    {/* Info card skeleton */}
+                                    <div className="border border-blue-200 bg-blue-50/50 rounded-lg p-4">
+                                        <div className="flex gap-3">
+                                            <Skeleton className="h-5 w-5 rounded-full flex-shrink-0" />
+                                            <div className="flex-1 space-y-2">
+                                                <Skeleton className="h-4 w-32" />
+                                                <Skeleton className="h-4 w-full" />
+                                                <Skeleton className="h-4 w-3/4" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Payment method tabs skeleton */}
+                                    <div className="border rounded-lg p-4 space-y-4">
+                                        <div className="flex gap-2">
+                                            <Skeleton className="h-10 w-20 rounded-md" />
+                                            <Skeleton className="h-10 w-20 rounded-md" />
+                                            <Skeleton className="h-10 w-20 rounded-md" />
+                                        </div>
+
+                                        {/* Card fields skeleton */}
+                                        <div className="space-y-3">
+                                            <div>
+                                                <Skeleton className="h-4 w-24 mb-2" />
+                                                <Skeleton className="h-11 w-full rounded-md" />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <Skeleton className="h-4 w-20 mb-2" />
+                                                    <Skeleton className="h-11 w-full rounded-md" />
+                                                </div>
+                                                <div>
+                                                    <Skeleton className="h-4 w-12 mb-2" />
+                                                    <Skeleton className="h-11 w-full rounded-md" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Submit button skeleton */}
+                                    <Skeleton className="h-11 w-full rounded-md" />
+
+                                    {/* Footer text skeleton */}
+                                    <div className="flex justify-center">
+                                        <Skeleton className="h-3 w-64" />
+                                    </div>
+
+                                    {/* Loading indicator */}
+                                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                        <Lock className="h-4 w-4" />
+                                        <span>Preparing secure checkout...</span>
+                                    </div>
                                 </div>
                             )}
 
