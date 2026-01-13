@@ -22,7 +22,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper, ClipboardCheck, ArrowRight, RefreshCw, XCircle } from "lucide-react";
+import { ImageOff, Store, ShoppingCart, Loader2, User as UserIcon, LogOut, Package, Settings, Plus, Minus, Trash2, CheckCircle, Clock, PartyPopper, ClipboardCheck, ArrowRight, RefreshCw, XCircle, MapPin } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -44,10 +44,19 @@ interface Item {
     isDeleted?: boolean;
 }
 
+interface BusinessAddress {
+    streetAddress: string;
+    addressLine2: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+}
+
 interface Business {
     name: string;
     phone?: string;
-    address?: string;
+    address?: BusinessAddress | string; // Support both structured and legacy string format
     logoUrl?: string;
 }
 
@@ -188,6 +197,8 @@ function CatalogPageContent() {
     });
     const [existingCustomer, setExistingCustomer] = useState(false);
     const [isReturningUser, setIsReturningUser] = useState(false);
+    const [distanceToStore, setDistanceToStore] = useState<number | null>(null);
+    const [calculatingDistance, setCalculatingDistance] = useState(false);
     const [pendingRedirect, setPendingRedirect] = useState(false);
     const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
     const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
@@ -393,6 +404,21 @@ function CatalogPageContent() {
                     const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
                     if (customerDoc.exists()) {
                         setExistingCustomer(true);
+                        // Load customer address for distance calculation
+                        const data = customerDoc.data();
+                        if (data.address) {
+                            setAddressForm(prev => ({
+                                ...prev,
+                                recipientName: data.name || "",
+                                phone: data.phone || "",
+                                streetAddress: data.address?.streetAddress || "",
+                                addressLine2: data.address?.addressLine2 || "",
+                                city: data.address?.city || "",
+                                state: data.address?.state || "",
+                                postalCode: data.address?.postalCode || "",
+                                country: data.address?.country || ""
+                            }));
+                        }
                     } else {
                         // Pre-fill name from Google account and show address form
                         setAddressForm(prev => ({
@@ -464,6 +490,7 @@ function CatalogPageContent() {
                     return;
                 }
 
+                console.log("[Catalog] Business address from Firestore:", profileData.businessAddress, "Type:", typeof profileData.businessAddress);
                 setBusiness({
                     name: profileData.businessName || "Store",
                     phone: profileData.businessPhone,
@@ -523,6 +550,21 @@ function CatalogPageContent() {
                     const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${user.uid}`));
                     if (customerDoc.exists()) {
                         setExistingCustomer(true);
+                        // Load customer address for distance calculation
+                        const data = customerDoc.data();
+                        if (data.address) {
+                            setAddressForm(prev => ({
+                                ...prev,
+                                recipientName: data.name || "",
+                                phone: data.phone || "",
+                                streetAddress: data.address?.streetAddress || "",
+                                addressLine2: data.address?.addressLine2 || "",
+                                city: data.address?.city || "",
+                                state: data.address?.state || "",
+                                postalCode: data.address?.postalCode || "",
+                                country: data.address?.country || ""
+                            }));
+                        }
                     } else {
                         // New user - pre-fill name and show address form immediately
                         setAddressForm(prev => ({
@@ -860,6 +902,82 @@ function CatalogPageContent() {
         console.error("Payment error:", error);
     };
 
+    // Helper function to format address for geocoding
+    const formatAddressForGeocoding = (addr: BusinessAddress | OnlineCustomerAddress): string => {
+        const parts: string[] = [];
+        if (addr.streetAddress) parts.push(addr.streetAddress);
+        if (addr.city) parts.push(addr.city);
+        if (addr.state) parts.push(addr.state);
+        if (addr.postalCode) parts.push(addr.postalCode);
+        if (addr.country) parts.push(addr.country);
+        return parts.join(", ");
+    };
+
+    // Calculate distance between customer and business using browser Geolocation API
+    const calculateDistance = async (customerAddr: OnlineCustomerAddress, businessAddr: BusinessAddress) => {
+        setCalculatingDistance(true);
+        try {
+            // Use a free geocoding service (Nominatim/OpenStreetMap)
+            const geocode = async (address: string): Promise<{ lat: number; lon: number } | null> => {
+                try {
+                    const response = await fetch(
+                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+                        { headers: { "User-Agent": "PosUp-WebCatalog/1.0" } }
+                    );
+                    const data = await response.json();
+                    if (data && data.length > 0) {
+                        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                    }
+                    return null;
+                } catch (err) {
+                    console.error("Geocoding error:", err);
+                    return null;
+                }
+            };
+
+            const customerLocation = await geocode(formatAddressForGeocoding(customerAddr));
+            const businessLocation = await geocode(formatAddressForGeocoding(businessAddr));
+
+            if (customerLocation && businessLocation) {
+                // Haversine formula to calculate distance in miles
+                const R = 3959; // Earth's radius in miles
+                const dLat = (businessLocation.lat - customerLocation.lat) * Math.PI / 180;
+                const dLon = (businessLocation.lon - customerLocation.lon) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(customerLocation.lat * Math.PI / 180) * Math.cos(businessLocation.lat * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const distance = R * c;
+                setDistanceToStore(Math.round(distance * 10) / 10); // Round to 1 decimal
+            }
+        } catch (err) {
+            console.error("Distance calculation error:", err);
+        } finally {
+            setCalculatingDistance(false);
+        }
+    };
+
+    // Calculate distance when customer address and business address are available
+    useEffect(() => {
+        console.log("[Distance] Checking conditions:", {
+            existingCustomer,
+            customerStreet: addressForm.streetAddress,
+            businessAddress: business?.address,
+            businessAddressType: typeof business?.address
+        });
+
+        if (existingCustomer && addressForm.streetAddress && business?.address) {
+            // Handle both structured address and legacy string format
+            if (typeof business.address === "string") {
+                // Legacy string format - skip distance calculation
+                console.log("[Distance] Business address is legacy string format, skipping");
+            } else {
+                console.log("[Distance] Calculating distance...");
+                calculateDistance(addressForm, business.address);
+            }
+        }
+    }, [existingCustomer, addressForm.streetAddress, business?.address]);
+
     const handleGoogleSignIn = async () => {
         setSigningIn(true);
         try {
@@ -870,6 +988,21 @@ function CatalogPageContent() {
             const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
             if (customerDoc.exists()) {
                 setExistingCustomer(true);
+                // Load customer address for distance calculation
+                const data = customerDoc.data();
+                if (data.address) {
+                    setAddressForm(prev => ({
+                        ...prev,
+                        recipientName: data.name || "",
+                        phone: data.phone || "",
+                        streetAddress: data.address?.streetAddress || "",
+                        addressLine2: data.address?.addressLine2 || "",
+                        city: data.address?.city || "",
+                        state: data.address?.state || "",
+                        postalCode: data.address?.postalCode || "",
+                        country: data.address?.country || ""
+                    }));
+                }
             } else {
                 // Pre-fill name from Google account
                 setAddressForm(prev => ({
@@ -1071,6 +1204,18 @@ function CatalogPageContent() {
                         {/* TODO: Re-enable iOS check after testing: {!isIOS && ( */}
                         {(
                             <div className="flex items-center gap-2">
+                                {/* Distance indicator - shown when customer is logged in with address */}
+                                {distanceToStore !== null && (
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                        <MapPin className="h-3 w-3" />
+                                        <span>{distanceToStore} mi</span>
+                                    </div>
+                                )}
+                                {calculatingDistance && (
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                    </div>
+                                )}
                                 <Button variant="outline" size="icon" className="relative" onClick={handleCartClick}>
                                     <ShoppingCart className="h-6 w-6" />
                                     {cart.length > 0 && (
