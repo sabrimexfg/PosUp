@@ -234,6 +234,20 @@ function CatalogPageContent() {
     const [orderToCancel, setOrderToCancel] = useState<OnlineOrder | null>(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
+    // Nearby stores dialog state
+    const [nearbyStoresDialogOpen, setNearbyStoresDialogOpen] = useState(false);
+    const [nearbyStores, setNearbyStores] = useState<Array<{
+        userId: string;
+        name: string;
+        logoUrl?: string;
+        city?: string;
+        state?: string;
+        distance?: number;
+        estimatedWaitTime?: number;
+        slug?: string;
+    }>>([]);
+    const [searchingStores, setSearchingStores] = useState(false);
+
     // Handle payment success from Stripe redirect
     useEffect(() => {
         const paymentStatus = searchParams.get("payment_status");
@@ -899,6 +913,107 @@ function CatalogPageContent() {
         }
     };
 
+    // Search for nearby stores that deliver to customer's address
+    const handleSearchNearbyStores = async () => {
+        setNearbyStoresDialogOpen(true);
+        setSearchingStores(true);
+        setNearbyStores([]);
+
+        try {
+            // Get all business slugs to find stores
+            const slugsSnapshot = await getDocs(collection(db, "business_slugs"));
+            const userIds = new Set<string>();
+            const slugMap = new Map<string, string>();
+            slugsSnapshot.docs.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.userId) {
+                    userIds.add(data.userId);
+                    slugMap.set(data.userId, docSnap.id);
+                }
+            });
+
+            // Fetch public profiles for each store
+            const profilePromises = Array.from(userIds).map(async (storeUserId) => {
+                try {
+                    const profileDoc = await getDoc(doc(db, `users/${storeUserId}/public_profile/info`));
+                    if (profileDoc.exists()) {
+                        const data = profileDoc.data();
+                        if (data.publicCatalogEnabled && data.deliveryRadius && data.acceptingOrders !== false) {
+                            return {
+                                storeUserId,
+                                name: data.businessName || "Store",
+                                logoUrl: data.businessLogoUrl,
+                                address: data.businessAddress,
+                                deliveryRadius: data.deliveryRadius,
+                                estimatedWaitTime: data.estimatedWaitTime,
+                                slug: slugMap.get(storeUserId)
+                            };
+                        }
+                    }
+                    return null;
+                } catch {
+                    return null;
+                }
+            });
+
+            const profiles = (await Promise.all(profilePromises)).filter(p => p !== null);
+
+            // Calculate distance for each store
+            const calculateDistanceFn = httpsCallable(functions, "calculateDistance");
+            const storesWithDistance = await Promise.all(
+                profiles.map(async (store) => {
+                    if (!store || !store.address || typeof store.address === "string") return null;
+
+                    try {
+                        const result = await calculateDistanceFn({
+                            customerAddress: {
+                                streetAddress: addressForm.streetAddress,
+                                city: addressForm.city,
+                                state: addressForm.state,
+                                postalCode: addressForm.postalCode,
+                                country: addressForm.country,
+                            },
+                            businessAddress: {
+                                streetAddress: store.address.streetAddress,
+                                city: store.address.city,
+                                state: store.address.state,
+                                postalCode: store.address.postalCode,
+                                country: store.address.country,
+                            },
+                        });
+
+                        const data = result.data as { success: boolean; distance?: number };
+                        if (data.success && data.distance !== undefined && data.distance <= store.deliveryRadius) {
+                            return {
+                                userId: store.storeUserId,
+                                name: store.name,
+                                logoUrl: store.logoUrl,
+                                city: store.address.city,
+                                state: store.address.state,
+                                distance: data.distance,
+                                estimatedWaitTime: store.estimatedWaitTime,
+                                slug: store.slug
+                            };
+                        }
+                        return null;
+                    } catch {
+                        return null;
+                    }
+                })
+            );
+
+            const validStores = storesWithDistance
+                .filter((s): s is NonNullable<typeof s> => s !== null)
+                .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+
+            setNearbyStores(validStores);
+        } catch (err) {
+            console.error("Error searching stores:", err);
+        } finally {
+            setSearchingStores(false);
+        }
+    };
+
     const handlePaymentSuccess = async () => {
         if (!selectedOrderForPayment) {
             console.error("No selected order for payment");
@@ -1345,12 +1460,7 @@ function CatalogPageContent() {
                                     variant="outline"
                                     size="sm"
                                     className="mt-3 border-red-300 text-red-700 hover:bg-red-100"
-                                    onClick={() => {
-                                        // Placeholder - will implement store search later
-                                        toast.info("Coming soon!", {
-                                            description: "Store search feature is under development."
-                                        });
-                                    }}
+                                    onClick={handleSearchNearbyStores}
                                 >
                                     <MapPin className="h-4 w-4 mr-2" />
                                     Check Stores Near You
@@ -2147,6 +2257,84 @@ function CatalogPageContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Nearby Stores Dialog */}
+            <Dialog open={nearbyStoresDialogOpen} onOpenChange={setNearbyStoresDialogOpen}>
+                <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Store className="h-5 w-5 text-purple-600" />
+                            Stores Near You
+                        </DialogTitle>
+                        <DialogDescription>
+                            {searchingStores
+                                ? "Searching for stores that deliver to your area..."
+                                : nearbyStores.length === 0
+                                    ? "No stores found that deliver to your area"
+                                    : `${nearbyStores.length} store${nearbyStores.length !== 1 ? "s" : ""} can deliver to your area`
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        {searchingStores ? (
+                            <div className="flex flex-col items-center justify-center py-8">
+                                <Loader2 className="h-8 w-8 animate-spin text-purple-600 mb-4" />
+                                <p className="text-sm text-muted-foreground">Finding stores...</p>
+                            </div>
+                        ) : nearbyStores.length === 0 ? (
+                            <div className="text-center py-8">
+                                <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                                <p className="text-muted-foreground">No stores currently deliver to your location.</p>
+                                <p className="text-sm text-muted-foreground mt-1">Try checking back later.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {nearbyStores.map((store) => (
+                                    <a
+                                        key={store.userId}
+                                        href={`/catalog/${store.slug || store.userId}`}
+                                        className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                                    >
+                                        {store.logoUrl ? (
+                                            <img
+                                                src={store.logoUrl}
+                                                alt={store.name}
+                                                className="h-12 w-12 rounded-lg object-cover"
+                                            />
+                                        ) : (
+                                            <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                                                <Store className="h-6 w-6 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate">{store.name}</p>
+                                            {store.city && store.state && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {store.city}, {store.state}
+                                                </p>
+                                            )}
+                                            <div className="flex items-center gap-3 mt-1">
+                                                {store.distance !== undefined && (
+                                                    <span className="text-xs text-purple-600 font-medium flex items-center gap-1">
+                                                        <MapPin className="h-3 w-3" />
+                                                        {store.distance} mi
+                                                    </span>
+                                                )}
+                                                {store.estimatedWaitTime && (
+                                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        ~{store.estimatedWaitTime} min
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Stripe Checkout Dialog (for approving orders after merchant picks) */}
             {selectedOrderForPayment && userId && (
