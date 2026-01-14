@@ -1332,7 +1332,7 @@ function CatalogPageContent() {
                         )}
                         {/* Out of delivery area warning */}
                         {isOutOfDeliveryArea && business?.deliveryRadius && (
-                            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                                 <p className="text-red-700 text-sm font-medium flex items-center gap-2">
                                     <MapPin className="h-4 w-4" />
                                     Outside Delivery Area
@@ -1341,6 +1341,20 @@ function CatalogPageContent() {
                                     Your address is {distanceToStore} miles away. This store only delivers within {business.deliveryRadius} miles.
                                     You can still browse the catalog, but ordering is not available for your location.
                                 </p>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-3 border-red-300 text-red-700 hover:bg-red-100"
+                                    onClick={() => {
+                                        // Placeholder - will implement store search later
+                                        toast.info("Coming soon!", {
+                                            description: "Store search feature is under development."
+                                        });
+                                    }}
+                                >
+                                    <MapPin className="h-4 w-4 mr-2" />
+                                    Check Stores Near You
+                                </Button>
                             </div>
                         )}
                     </div>
