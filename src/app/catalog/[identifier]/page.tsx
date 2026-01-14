@@ -737,6 +737,26 @@ function CatalogPageContent() {
 
         setPlacingOrder(true);
         try {
+            // Re-fetch delivery settings to ensure they haven't changed
+            const publicProfileDoc = await getDoc(doc(db, `users/${userId}/public_profile/info`));
+            const profileData = publicProfileDoc.data();
+            const currentDeliveryRadius = profileData?.deliveryRadius;
+
+            // If delivery radius is set, re-check distance
+            if (currentDeliveryRadius && distanceToStore !== null) {
+                if (distanceToStore > currentDeliveryRadius) {
+                    // Update local state and show error
+                    setIsOutOfDeliveryArea(true);
+                    setBusiness(prev => prev ? { ...prev, deliveryRadius: currentDeliveryRadius } : prev);
+                    toast.error("Outside delivery area", {
+                        description: `Your address is ${distanceToStore} miles away. This store only delivers within ${currentDeliveryRadius} miles.`
+                    });
+                    setCartDialogOpen(false);
+                    setPlacingOrder(false);
+                    return;
+                }
+            }
+
             // Fetch customer data for the order
             const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${currentUser.uid}`));
             const customerData = customerDoc.exists() ? customerDoc.data() : null;
