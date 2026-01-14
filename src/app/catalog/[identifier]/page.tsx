@@ -902,53 +902,33 @@ function CatalogPageContent() {
         console.error("Payment error:", error);
     };
 
-    // Helper function to format address for geocoding
-    const formatAddressForGeocoding = (addr: BusinessAddress | OnlineCustomerAddress): string => {
-        const parts: string[] = [];
-        if (addr.streetAddress) parts.push(addr.streetAddress);
-        if (addr.city) parts.push(addr.city);
-        if (addr.state) parts.push(addr.state);
-        if (addr.postalCode) parts.push(addr.postalCode);
-        if (addr.country) parts.push(addr.country);
-        return parts.join(", ");
-    };
-
-    // Calculate distance between customer and business using browser Geolocation API
+    // Calculate distance between customer and business using Firebase Cloud Function
     const calculateDistance = async (customerAddr: OnlineCustomerAddress, businessAddr: BusinessAddress) => {
         setCalculatingDistance(true);
         try {
-            // Use a free geocoding service (Nominatim/OpenStreetMap)
-            const geocode = async (address: string): Promise<{ lat: number; lon: number } | null> => {
-                try {
-                    const response = await fetch(
-                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
-                        { headers: { "User-Agent": "PosUp-WebCatalog/1.0" } }
-                    );
-                    const data = await response.json();
-                    if (data && data.length > 0) {
-                        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-                    }
-                    return null;
-                } catch (err) {
-                    console.error("Geocoding error:", err);
-                    return null;
-                }
-            };
+            const calculateDistanceFn = httpsCallable(functions, "calculateDistance");
+            const result = await calculateDistanceFn({
+                customerAddress: {
+                    streetAddress: customerAddr.streetAddress,
+                    city: customerAddr.city,
+                    state: customerAddr.state,
+                    postalCode: customerAddr.postalCode,
+                    country: customerAddr.country,
+                },
+                businessAddress: {
+                    streetAddress: businessAddr.streetAddress,
+                    city: businessAddr.city,
+                    state: businessAddr.state,
+                    postalCode: businessAddr.postalCode,
+                    country: businessAddr.country,
+                },
+            });
 
-            const customerLocation = await geocode(formatAddressForGeocoding(customerAddr));
-            const businessLocation = await geocode(formatAddressForGeocoding(businessAddr));
-
-            if (customerLocation && businessLocation) {
-                // Haversine formula to calculate distance in miles
-                const R = 3959; // Earth's radius in miles
-                const dLat = (businessLocation.lat - customerLocation.lat) * Math.PI / 180;
-                const dLon = (businessLocation.lon - customerLocation.lon) * Math.PI / 180;
-                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                    Math.cos(customerLocation.lat * Math.PI / 180) * Math.cos(businessLocation.lat * Math.PI / 180) *
-                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                const distance = R * c;
-                setDistanceToStore(Math.round(distance * 10) / 10); // Round to 1 decimal
+            const data = result.data as { success: boolean; distance?: number; error?: string };
+            if (data.success && data.distance !== undefined) {
+                setDistanceToStore(data.distance);
+            } else {
+                console.error("Distance calculation failed:", data.error);
             }
         } catch (err) {
             console.error("Distance calculation error:", err);
