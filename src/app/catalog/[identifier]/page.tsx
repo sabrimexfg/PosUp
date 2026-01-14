@@ -58,6 +58,9 @@ interface Business {
     phone?: string;
     address?: BusinessAddress | string; // Support both structured and legacy string format
     logoUrl?: string;
+    deliveryRadius?: number; // in miles
+    acceptingOrders?: boolean;
+    estimatedWaitTime?: number; // in minutes
 }
 
 interface CartItem {
@@ -199,6 +202,7 @@ function CatalogPageContent() {
     const [isReturningUser, setIsReturningUser] = useState(false);
     const [distanceToStore, setDistanceToStore] = useState<number | null>(null);
     const [calculatingDistance, setCalculatingDistance] = useState(false);
+    const [isOutOfDeliveryArea, setIsOutOfDeliveryArea] = useState(false);
     const [pendingRedirect, setPendingRedirect] = useState(false);
     const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
     const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
@@ -491,11 +495,19 @@ function CatalogPageContent() {
                 }
 
                 console.log("[Catalog] Business address from Firestore:", profileData.businessAddress, "Type:", typeof profileData.businessAddress);
+                console.log("[Catalog] Delivery settings:", {
+                    deliveryRadius: profileData.deliveryRadius,
+                    acceptingOrders: profileData.acceptingOrders,
+                    estimatedWaitTime: profileData.estimatedWaitTime
+                });
                 setBusiness({
                     name: profileData.businessName || "Store",
                     phone: profileData.businessPhone,
                     address: profileData.businessAddress,
-                    logoUrl: profileData.businessLogoUrl
+                    logoUrl: profileData.businessLogoUrl,
+                    deliveryRadius: profileData.deliveryRadius,
+                    acceptingOrders: profileData.acceptingOrders,
+                    estimatedWaitTime: profileData.estimatedWaitTime
                 });
             } catch (err: any) {
                 console.error("[Catalog] Step 1 FAILED: Error fetching public_profile/info:", err);
@@ -664,6 +676,10 @@ function CatalogPageContent() {
             setAuthDialogOpen(true);
         } else if (!existingCustomer) {
             setAddressFormOpen(true);
+        } else if (isOutOfDeliveryArea) {
+            toast.error("Outside delivery area", {
+                description: `This store only delivers within ${business?.deliveryRadius || 10} miles of their location.`
+            });
         } else {
             setCartDialogOpen(true);
         }
@@ -903,7 +919,7 @@ function CatalogPageContent() {
     };
 
     // Calculate distance between customer and business using Firebase Cloud Function
-    const calculateDistance = async (customerAddr: OnlineCustomerAddress, businessAddr: BusinessAddress) => {
+    const calculateDistance = async (customerAddr: OnlineCustomerAddress, businessAddr: BusinessAddress, deliveryRadius?: number) => {
         setCalculatingDistance(true);
         try {
             const calculateDistanceFn = httpsCallable(functions, "calculateDistance");
@@ -927,6 +943,13 @@ function CatalogPageContent() {
             const data = result.data as { success: boolean; distance?: number; error?: string };
             if (data.success && data.distance !== undefined) {
                 setDistanceToStore(data.distance);
+                // Check if customer is outside delivery radius
+                if (deliveryRadius && data.distance > deliveryRadius) {
+                    setIsOutOfDeliveryArea(true);
+                    console.log(`[Distance] Customer is ${data.distance} miles away, outside delivery radius of ${deliveryRadius} miles`);
+                } else {
+                    setIsOutOfDeliveryArea(false);
+                }
             } else {
                 console.error("Distance calculation failed:", data.error);
             }
@@ -943,7 +966,8 @@ function CatalogPageContent() {
             existingCustomer,
             customerStreet: addressForm.streetAddress,
             businessAddress: business?.address,
-            businessAddressType: typeof business?.address
+            businessAddressType: typeof business?.address,
+            deliveryRadius: business?.deliveryRadius
         });
 
         if (existingCustomer && addressForm.streetAddress && business?.address) {
@@ -953,10 +977,10 @@ function CatalogPageContent() {
                 console.log("[Distance] Business address is legacy string format, skipping");
             } else {
                 console.log("[Distance] Calculating distance...");
-                calculateDistance(addressForm, business.address);
+                calculateDistance(addressForm, business.address, business.deliveryRadius);
             }
         }
-    }, [existingCustomer, addressForm.streetAddress, business?.address]);
+    }, [existingCustomer, addressForm.streetAddress, business?.address, business?.deliveryRadius]);
 
     const handleGoogleSignIn = async () => {
         setSigningIn(true);
@@ -1186,7 +1210,11 @@ function CatalogPageContent() {
                             <div className="flex items-center gap-2">
                                 {/* Distance indicator - shown when customer is logged in with address */}
                                 {distanceToStore !== null && (
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                    <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
+                                        isOutOfDeliveryArea
+                                            ? "bg-red-100 text-red-700"
+                                            : "bg-muted text-muted-foreground"
+                                    }`}>
                                         <MapPin className="h-3 w-3" />
                                         <span>{distanceToStore} mi</span>
                                     </div>
@@ -1282,6 +1310,19 @@ function CatalogPageContent() {
                                 Complete your profile to start placing orders.
                             </p>
                         )}
+                        {/* Out of delivery area warning */}
+                        {isOutOfDeliveryArea && business?.deliveryRadius && (
+                            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-red-700 text-sm font-medium flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    Outside Delivery Area
+                                </p>
+                                <p className="text-red-600 text-xs mt-1">
+                                    Your address is {distanceToStore} miles away. This store only delivers within {business.deliveryRadius} miles.
+                                    You can still browse the catalog, but ordering is not available for your location.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -1327,7 +1368,7 @@ function CatalogPageContent() {
                                         <p className="text-xs text-muted-foreground truncate mb-2">
                                             {item.category}
                                         </p>
-                                        {currentUser && existingCustomer && (
+                                        {currentUser && existingCustomer && !isOutOfDeliveryArea && (
                                             <>
                                                 <Button
                                                     size="sm"
@@ -1349,6 +1390,11 @@ function CatalogPageContent() {
                                                     />
                                                 </div>
                                             </>
+                                        )}
+                                        {currentUser && existingCustomer && isOutOfDeliveryArea && (
+                                            <p className="text-xs text-red-600 text-center py-2">
+                                                Not available for delivery to your area
+                                            </p>
                                         )}
                                     </CardContent>
                                 </Card>
