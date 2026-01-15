@@ -119,6 +119,24 @@ interface OnlineOrder {
     createdAt: number;
 }
 
+// Global customer profile (shared across all stores)
+interface GlobalCustomerProfile {
+    id: string;
+    email: string;
+    name: string;
+    phone: string;
+    defaultAddress: {
+        streetAddress: string;
+        addressLine2: string;
+        city: string;
+        state: string;
+        postalCode: string;
+        country: string;
+    };
+    createdAt: number;
+    updatedAt: number;
+}
+
 function CatalogPageContent() {
     const params = useParams();
     const searchParams = useSearchParams();
@@ -418,32 +436,59 @@ function CatalogPageContent() {
             try {
                 const result = await getRedirectResult(auth);
                 if (result?.user && userId) {
-                    // User just signed in via redirect
-                    const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
-                    if (customerDoc.exists()) {
-                        setExistingCustomer(true);
-                        // Load customer address for distance calculation
-                        const data = customerDoc.data();
-                        if (data.address) {
-                            setAddressForm(prev => ({
-                                ...prev,
-                                recipientName: data.name || "",
-                                phone: data.phone || "",
-                                streetAddress: data.address?.streetAddress || "",
-                                addressLine2: data.address?.addressLine2 || "",
-                                city: data.address?.city || "",
-                                state: data.address?.state || "",
-                                postalCode: data.address?.postalCode || "",
-                                country: data.address?.country || ""
-                            }));
+                    // User just signed in via redirect - use hybrid profile lookup
+                    // First check global profile
+                    const globalProfileDoc = await getDoc(doc(db, `online_customers/${result.user.uid}`));
+
+                    if (globalProfileDoc.exists()) {
+                        // Global profile exists - load address from it
+                        const globalData = globalProfileDoc.data() as GlobalCustomerProfile;
+                        setAddressForm({
+                            recipientName: globalData.name || result.user.displayName || "",
+                            phone: globalData.phone || "",
+                            streetAddress: globalData.defaultAddress?.streetAddress || "",
+                            addressLine2: globalData.defaultAddress?.addressLine2 || "",
+                            city: globalData.defaultAddress?.city || "",
+                            state: globalData.defaultAddress?.state || "",
+                            postalCode: globalData.defaultAddress?.postalCode || "",
+                            country: globalData.defaultAddress?.country || ""
+                        });
+
+                        // Check if per-store link exists
+                        const storeCustomerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
+                        if (storeCustomerDoc.exists()) {
+                            setExistingCustomer(true);
+                        } else {
+                            // Global profile exists but first time at this store - confirm address
+                            setAddressFormOpen(true);
                         }
                     } else {
-                        // Pre-fill name from Google account and show address form
-                        setAddressForm(prev => ({
-                            ...prev,
-                            recipientName: result.user.displayName || ""
-                        }));
-                        setAddressFormOpen(true);
+                        // No global profile - check legacy per-store data
+                        const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
+                        if (customerDoc.exists()) {
+                            setExistingCustomer(true);
+                            const data = customerDoc.data();
+                            if (data.address) {
+                                setAddressForm(prev => ({
+                                    ...prev,
+                                    recipientName: data.name || "",
+                                    phone: data.phone || "",
+                                    streetAddress: data.address?.streetAddress || "",
+                                    addressLine2: data.address?.addressLine2 || "",
+                                    city: data.address?.city || "",
+                                    state: data.address?.state || "",
+                                    postalCode: data.address?.postalCode || "",
+                                    country: data.address?.country || ""
+                                }));
+                            }
+                        } else {
+                            // Pre-fill name from Google account and show address form
+                            setAddressForm(prev => ({
+                                ...prev,
+                                recipientName: result.user.displayName || ""
+                            }));
+                            setAddressFormOpen(true);
+                        }
                     }
                 }
             } catch (err) {
@@ -571,33 +616,89 @@ function CatalogPageContent() {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setCurrentUser(user);
             if (user && userId) {
-                // Check if this user is already an online customer for this store
+                // Check for customer profile using hybrid approach:
+                // 1. Check global profile first (shared across all stores)
+                // 2. Fall back to per-store customer data
+                // 3. If neither exists, show address form
                 try {
-                    const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${user.uid}`));
-                    if (customerDoc.exists()) {
-                        setExistingCustomer(true);
-                        // Load customer address for distance calculation
-                        const data = customerDoc.data();
-                        if (data.address) {
-                            setAddressForm(prev => ({
-                                ...prev,
-                                recipientName: data.name || "",
-                                phone: data.phone || "",
-                                streetAddress: data.address?.streetAddress || "",
-                                addressLine2: data.address?.addressLine2 || "",
-                                city: data.address?.city || "",
-                                state: data.address?.state || "",
-                                postalCode: data.address?.postalCode || "",
-                                country: data.address?.country || ""
-                            }));
+                    // First, check for global customer profile
+                    const globalProfileDoc = await getDoc(doc(db, `online_customers/${user.uid}`));
+
+                    if (globalProfileDoc.exists()) {
+                        // Global profile exists - load address from it
+                        const globalData = globalProfileDoc.data() as GlobalCustomerProfile;
+                        setAddressForm({
+                            recipientName: globalData.name || user.displayName || "",
+                            phone: globalData.phone || "",
+                            streetAddress: globalData.defaultAddress?.streetAddress || "",
+                            addressLine2: globalData.defaultAddress?.addressLine2 || "",
+                            city: globalData.defaultAddress?.city || "",
+                            state: globalData.defaultAddress?.state || "",
+                            postalCode: globalData.defaultAddress?.postalCode || "",
+                            country: globalData.defaultAddress?.country || ""
+                        });
+
+                        // Check if per-store link exists (determines if they've ordered from this store)
+                        const storeCustomerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${user.uid}`));
+                        if (storeCustomerDoc.exists()) {
+                            setExistingCustomer(true);
+                        } else {
+                            // Global profile exists but first time at this store
+                            // Pre-fill form and let them confirm
+                            setAddressFormOpen(true);
                         }
                     } else {
-                        // New user - pre-fill name and show address form immediately
-                        setAddressForm(prev => ({
-                            ...prev,
-                            recipientName: user.displayName || ""
-                        }));
-                        setAddressFormOpen(true);
+                        // No global profile - check legacy per-store data
+                        const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${user.uid}`));
+                        if (customerDoc.exists()) {
+                            setExistingCustomer(true);
+                            // Load customer address for distance calculation
+                            const data = customerDoc.data();
+                            if (data.address) {
+                                setAddressForm(prev => ({
+                                    ...prev,
+                                    recipientName: data.name || "",
+                                    phone: data.phone || "",
+                                    streetAddress: data.address?.streetAddress || "",
+                                    addressLine2: data.address?.addressLine2 || "",
+                                    city: data.address?.city || "",
+                                    state: data.address?.state || "",
+                                    postalCode: data.address?.postalCode || "",
+                                    country: data.address?.country || ""
+                                }));
+                            }
+                        } else {
+                            // New user - check localStorage for address from another store (legacy fallback)
+                            const savedAddressStr = localStorage.getItem("posup_customer_address");
+                            if (savedAddressStr) {
+                                try {
+                                    const savedAddress = JSON.parse(savedAddressStr);
+                                    setAddressForm({
+                                        recipientName: savedAddress.recipientName || user.displayName || "",
+                                        phone: savedAddress.phone || "",
+                                        streetAddress: savedAddress.streetAddress || "",
+                                        addressLine2: savedAddress.addressLine2 || "",
+                                        city: savedAddress.city || "",
+                                        state: savedAddress.state || "",
+                                        postalCode: savedAddress.postalCode || "",
+                                        country: savedAddress.country || ""
+                                    });
+                                } catch {
+                                    // Invalid JSON, just use display name
+                                    setAddressForm(prev => ({
+                                        ...prev,
+                                        recipientName: user.displayName || ""
+                                    }));
+                                }
+                            } else {
+                                setAddressForm(prev => ({
+                                    ...prev,
+                                    recipientName: user.displayName || ""
+                                }));
+                            }
+                            // Show address form to confirm/complete the address
+                            setAddressFormOpen(true);
+                        }
                     }
                 } catch (err) {
                     console.error("Error checking customer:", err);
@@ -1123,32 +1224,59 @@ function CatalogPageContent() {
             // Try popup first
             const result = await signInWithPopup(auth, provider);
             setAuthDialogOpen(false);
-            // Check if customer exists
-            const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
-            if (customerDoc.exists()) {
-                setExistingCustomer(true);
-                // Load customer address for distance calculation
-                const data = customerDoc.data();
-                if (data.address) {
-                    setAddressForm(prev => ({
-                        ...prev,
-                        recipientName: data.name || "",
-                        phone: data.phone || "",
-                        streetAddress: data.address?.streetAddress || "",
-                        addressLine2: data.address?.addressLine2 || "",
-                        city: data.address?.city || "",
-                        state: data.address?.state || "",
-                        postalCode: data.address?.postalCode || "",
-                        country: data.address?.country || ""
-                    }));
+
+            // Use hybrid profile lookup - check global profile first
+            const globalProfileDoc = await getDoc(doc(db, `online_customers/${result.user.uid}`));
+
+            if (globalProfileDoc.exists()) {
+                // Global profile exists - load address from it
+                const globalData = globalProfileDoc.data() as GlobalCustomerProfile;
+                setAddressForm({
+                    recipientName: globalData.name || result.user.displayName || "",
+                    phone: globalData.phone || "",
+                    streetAddress: globalData.defaultAddress?.streetAddress || "",
+                    addressLine2: globalData.defaultAddress?.addressLine2 || "",
+                    city: globalData.defaultAddress?.city || "",
+                    state: globalData.defaultAddress?.state || "",
+                    postalCode: globalData.defaultAddress?.postalCode || "",
+                    country: globalData.defaultAddress?.country || ""
+                });
+
+                // Check if per-store link exists
+                const storeCustomerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
+                if (storeCustomerDoc.exists()) {
+                    setExistingCustomer(true);
+                } else {
+                    // Global profile exists but first time at this store - confirm address
+                    setAddressFormOpen(true);
                 }
             } else {
-                // Pre-fill name from Google account
-                setAddressForm(prev => ({
-                    ...prev,
-                    recipientName: result.user.displayName || ""
-                }));
-                setAddressFormOpen(true);
+                // No global profile - check legacy per-store data
+                const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`));
+                if (customerDoc.exists()) {
+                    setExistingCustomer(true);
+                    const data = customerDoc.data();
+                    if (data.address) {
+                        setAddressForm(prev => ({
+                            ...prev,
+                            recipientName: data.name || "",
+                            phone: data.phone || "",
+                            streetAddress: data.address?.streetAddress || "",
+                            addressLine2: data.address?.addressLine2 || "",
+                            city: data.address?.city || "",
+                            state: data.address?.state || "",
+                            postalCode: data.address?.postalCode || "",
+                            country: data.address?.country || ""
+                        }));
+                    }
+                } else {
+                    // Pre-fill name from Google account
+                    setAddressForm(prev => ({
+                        ...prev,
+                        recipientName: result.user.displayName || ""
+                    }));
+                    setAddressFormOpen(true);
+                }
             }
         } catch (err: any) {
             console.error("Popup sign-in failed, trying redirect:", err);
@@ -1183,29 +1311,54 @@ function CatalogPageContent() {
 
         setSavingCustomer(true);
         try {
-            const customerData = {
+            const now = Date.now();
+            const addressData = {
+                streetAddress: addressForm.streetAddress.trim(),
+                addressLine2: addressForm.addressLine2.trim(),
+                city: addressForm.city.trim(),
+                state: addressForm.state.trim(),
+                postalCode: addressForm.postalCode.trim(),
+                country: addressForm.country.trim()
+            };
+
+            // 1. Save/update global customer profile
+            const globalProfileData: GlobalCustomerProfile = {
+                id: currentUser.uid,
+                email: currentUser.email || "",
+                name: addressForm.recipientName.trim(),
+                phone: addressForm.phone.trim(),
+                defaultAddress: addressData,
+                createdAt: now,
+                updatedAt: now
+            };
+
+            // Use merge to preserve createdAt if profile already exists
+            await setDoc(doc(db, `online_customers/${currentUser.uid}`), {
+                ...globalProfileData,
+                updatedAt: now
+            }, { merge: true });
+
+            // 2. Create/update per-store customer link with legacy format (for backward compatibility)
+            const storeCustomerData = {
                 id: currentUser.uid,
                 email: currentUser.email,
                 name: addressForm.recipientName.trim(),
                 phone: addressForm.phone.trim(),
-                address: {
-                    streetAddress: addressForm.streetAddress.trim(),
-                    addressLine2: addressForm.addressLine2.trim(),
-                    city: addressForm.city.trim(),
-                    state: addressForm.state.trim(),
-                    postalCode: addressForm.postalCode.trim(),
-                    country: addressForm.country.trim()
-                },
-                createdAt: Date.now(),
-                updatedAt: Date.now()
+                address: addressData,
+                globalCustomerId: currentUser.uid, // Link to global profile
+                createdAt: now,
+                updatedAt: now
             };
 
-            await setDoc(doc(db, `users/${userId}/online_customers/${currentUser.uid}`), customerData);
+            await setDoc(doc(db, `users/${userId}/online_customers/${currentUser.uid}`), storeCustomerData, { merge: true });
+
             setExistingCustomer(true);
             setAddressFormOpen(false);
             // Mark as returning user for future visits
             localStorage.setItem(`posup_customer_${userId}`, "true");
             setIsReturningUser(true);
+            // Clear temporary address from localStorage since it's now saved to Firestore
+            localStorage.removeItem("posup_customer_address");
         } catch (err) {
             console.error("Error saving customer:", err);
         } finally {
@@ -1227,20 +1380,37 @@ function CatalogPageContent() {
         if (!currentUser || !userId) return;
 
         try {
-            // Fetch existing customer data to pre-fill the form
-            const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${currentUser.uid}`));
-            if (customerDoc.exists()) {
-                const data = customerDoc.data();
+            // Fetch from global profile first, then fall back to per-store
+            const globalProfileDoc = await getDoc(doc(db, `online_customers/${currentUser.uid}`));
+
+            if (globalProfileDoc.exists()) {
+                const globalData = globalProfileDoc.data() as GlobalCustomerProfile;
                 setAddressForm({
-                    recipientName: data.name || "",
-                    phone: data.phone || "",
-                    streetAddress: data.address?.streetAddress || "",
-                    addressLine2: data.address?.addressLine2 || "",
-                    city: data.address?.city || "",
-                    state: data.address?.state || "",
-                    postalCode: data.address?.postalCode || "",
-                    country: data.address?.country || ""
+                    recipientName: globalData.name || "",
+                    phone: globalData.phone || "",
+                    streetAddress: globalData.defaultAddress?.streetAddress || "",
+                    addressLine2: globalData.defaultAddress?.addressLine2 || "",
+                    city: globalData.defaultAddress?.city || "",
+                    state: globalData.defaultAddress?.state || "",
+                    postalCode: globalData.defaultAddress?.postalCode || "",
+                    country: globalData.defaultAddress?.country || ""
                 });
+            } else {
+                // Fall back to per-store data
+                const customerDoc = await getDoc(doc(db, `users/${userId}/online_customers/${currentUser.uid}`));
+                if (customerDoc.exists()) {
+                    const data = customerDoc.data();
+                    setAddressForm({
+                        recipientName: data.name || "",
+                        phone: data.phone || "",
+                        streetAddress: data.address?.streetAddress || "",
+                        addressLine2: data.address?.addressLine2 || "",
+                        city: data.address?.city || "",
+                        state: data.address?.state || "",
+                        postalCode: data.address?.postalCode || "",
+                        country: data.address?.country || ""
+                    });
+                }
             }
         } catch (err) {
             console.error("Error fetching customer data:", err);
@@ -2293,6 +2463,12 @@ function CatalogPageContent() {
                                     <a
                                         key={store.userId}
                                         href={`/catalog/${store.slug || store.userId}`}
+                                        onClick={() => {
+                                            // Save customer address to localStorage so the new store can use it
+                                            if (addressForm.streetAddress) {
+                                                localStorage.setItem("posup_customer_address", JSON.stringify(addressForm));
+                                            }
+                                        }}
                                         className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                                     >
                                         {store.logoUrl ? (
