@@ -459,8 +459,23 @@ function CatalogPageContent() {
                         if (storeCustomerDoc.exists()) {
                             setExistingCustomer(true);
                         } else {
-                            // Global profile exists but first time at this store - confirm address
-                            setAddressFormOpen(true);
+                            // Global profile exists but no per-store record yet
+                            // Auto-create per-store customer record from global profile
+                            const now = Date.now();
+                            const storeCustomerData = {
+                                id: result.user.uid,
+                                email: result.user.email,
+                                name: globalData.name,
+                                phone: globalData.phone,
+                                address: globalData.defaultAddress,
+                                globalCustomerId: result.user.uid,
+                                createdAt: now,
+                                updatedAt: now
+                            };
+                            await setDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`), storeCustomerData);
+                            setExistingCustomer(true);
+                            localStorage.setItem(`posup_customer_${userId}`, "true");
+                            setIsReturningUser(true);
                         }
                     } else {
                         // No global profile - check legacy per-store data
@@ -643,9 +658,23 @@ function CatalogPageContent() {
                         if (storeCustomerDoc.exists()) {
                             setExistingCustomer(true);
                         } else {
-                            // Global profile exists but first time at this store
-                            // Pre-fill form and let them confirm
-                            setAddressFormOpen(true);
+                            // Global profile exists but no per-store record yet
+                            // Auto-create per-store customer record from global profile
+                            const now = Date.now();
+                            const storeCustomerData = {
+                                id: user.uid,
+                                email: user.email,
+                                name: globalData.name,
+                                phone: globalData.phone,
+                                address: globalData.defaultAddress,
+                                globalCustomerId: user.uid,
+                                createdAt: now,
+                                updatedAt: now
+                            };
+                            await setDoc(doc(db, `users/${userId}/online_customers/${user.uid}`), storeCustomerData);
+                            setExistingCustomer(true);
+                            localStorage.setItem(`posup_customer_${userId}`, "true");
+                            setIsReturningUser(true);
                         }
                     } else {
                         // No global profile - check legacy per-store data
@@ -1247,8 +1276,23 @@ function CatalogPageContent() {
                 if (storeCustomerDoc.exists()) {
                     setExistingCustomer(true);
                 } else {
-                    // Global profile exists but first time at this store - confirm address
-                    setAddressFormOpen(true);
+                    // Global profile exists but no per-store record yet
+                    // Auto-create per-store customer record from global profile
+                    const now = Date.now();
+                    const storeCustomerData = {
+                        id: result.user.uid,
+                        email: result.user.email,
+                        name: globalData.name,
+                        phone: globalData.phone,
+                        address: globalData.defaultAddress,
+                        globalCustomerId: result.user.uid,
+                        createdAt: now,
+                        updatedAt: now
+                    };
+                    await setDoc(doc(db, `users/${userId}/online_customers/${result.user.uid}`), storeCustomerData);
+                    setExistingCustomer(true);
+                    localStorage.setItem(`posup_customer_${userId}`, "true");
+                    setIsReturningUser(true);
                 }
             } else {
                 // No global profile - check legacy per-store data
